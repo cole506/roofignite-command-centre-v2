@@ -6649,7 +6649,7 @@ const WRITE_ACTION_LABELS = {
   deletePod:            'Deleting pod',
 };
 // Read-only actions that should NOT show the blocking modal
-const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale', 'checkClientFolder'];
+const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale', 'checkClientFolder', 'getCreativeQueue'];
 
 function showWriteProgressModal_(action) {
   const label = WRITE_ACTION_LABELS[action] || 'Saving changes';
@@ -7412,10 +7412,62 @@ async function loadCreativeForgeContent(clientName) {
     `;
   }
 
+  // Add Generate section
+  html += `
+    <hr class="border-dark-600/30 mb-6">
+    <div class="mb-4">
+      <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Generate Creatives
+      </h3>
+      <p class="text-xs text-dark-500 mb-4">Add a generation job to the queue</p>
+      <div class="grid grid-cols-3 gap-3 mb-3">
+        <div>
+          <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Image Count</label>
+          <input type="number" id="cf-gen-count" value="12" min="1" max="30" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div>
+          <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Priority</label>
+          <select id="cf-gen-priority" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500">
+            <option value="normal">Normal</option>
+            <option value="rush">Rush (front of queue)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Scene Type</label>
+          <select id="cf-gen-scene" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500">
+            <option value="auto">Auto (from top performers)</option>
+            <option value="selfies">Selfies only</option>
+            <option value="property">Property only</option>
+            <option value="crew">Crew only</option>
+            <option value="mixed">Mixed (all types)</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Notes (optional)</label>
+        <input type="text" id="cf-gen-notes" placeholder="e.g. focus on tile roofs, more drone shots..." class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-3 py-2 focus:outline-none focus:border-emerald-500" />
+      </div>
+      <button onclick="submitCreativeForgeJob('${esc(clientName)}')" class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/20 transition-all">
+        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Add to Queue
+      </button>
+    </div>
+
+    <!-- Queue Status -->
+    <div id="cf-queue-status" class="mb-4">
+      <h4 class="text-xs uppercase tracking-wider text-dark-400 font-semibold mb-2">Recent Jobs</h4>
+      <div class="text-xs text-dark-500">Loading queue...</div>
+    </div>
+  `;
+
   body.innerHTML = html;
 
   // Load files for each section in parallel
   await Promise.all(CF_SECTIONS.map(s => loadCreativeSection(clientName, s.subfolder, s.key)));
+
+  // Load queue status
+  loadCreativeQueueStatus(clientName);
 }
 
 async function loadCreativeSection(clientName, subfolder, key) {
@@ -7533,6 +7585,102 @@ async function saveCreativeForgeLocale(clientName) {
     showToast('Location saved', 'success');
   } else {
     showToast('Save failed: ' + (result.error || 'Unknown error'), 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// CREATIVE FORGE QUEUE SUBMIT + STATUS
+// ═══════════════════════════════════════════════
+
+async function submitCreativeForgeJob(clientName) {
+  const count = parseInt(document.getElementById('cf-gen-count')?.value) || 12;
+  const priority = document.getElementById('cf-gen-priority')?.value || 'normal';
+  const scene = document.getElementById('cf-gen-scene')?.value || 'auto';
+  const notes = document.getElementById('cf-gen-notes')?.value || '';
+
+  // Find the account's manager
+  const acct = allAccounts.find(a => a.name === clientName);
+  const manager = acct ? acct.manager : '';
+
+  // Get current user
+  const user = JSON.parse(localStorage.getItem('roofignite_user') || '{}');
+  const requestedBy = user.name || user.email || 'Unknown';
+
+  const btn = event?.target?.closest('button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding to queue...'; }
+
+  const result = await writeToSheet('addToCreativeQueue', {
+    clientName,
+    requestedBy,
+    imageCount: count,
+    sceneOverride: scene,
+    priority,
+    notes,
+    manager,
+  });
+
+  if (result.ok) {
+    showToast(`Queued: ${count} images for ${clientName} (${priority})`, 'success');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Add to Queue'; }
+    loadCreativeQueueStatus(clientName);
+  } else {
+    showToast('Queue failed: ' + (result.error || ''), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Add to Queue'; }
+  }
+}
+
+async function loadCreativeQueueStatus(clientName) {
+  const container = document.getElementById('cf-queue-status');
+  if (!container) return;
+
+  const result = await writeToSheet('getCreativeQueue', { clientName }, { silent: true });
+  if (!result.ok || !result.jobs || result.jobs.length === 0) {
+    container.innerHTML = '<h4 class="text-xs uppercase tracking-wider text-dark-400 font-semibold mb-2">Recent Jobs</h4><div class="text-xs text-dark-500">No jobs yet</div>';
+    return;
+  }
+
+  const statusColors = {
+    queued: 'bg-yellow-500/20 text-yellow-400',
+    processing: 'bg-blue-500/20 text-blue-400',
+    complete: 'bg-emerald-500/20 text-emerald-400',
+    failed: 'bg-red-500/20 text-red-400',
+  };
+
+  const statusIcons = {
+    queued: '⏳',
+    processing: '⚡',
+    complete: '✅',
+    failed: '❌',
+  };
+
+  // Show last 5 jobs
+  const jobs = result.jobs.slice(0, 5);
+
+  container.innerHTML = '<h4 class="text-xs uppercase tracking-wider text-dark-400 font-semibold mb-2">Recent Jobs</h4>' +
+    jobs.map(j => {
+      const status = (j.Status || 'queued').toLowerCase();
+      const color = statusColors[status] || statusColors.queued;
+      const icon = statusIcons[status] || '⏳';
+      const time = j['Requested At'] ? new Date(j['Requested At']).toLocaleString() : '';
+      return `<div class="flex items-center justify-between py-2 px-3 rounded-lg bg-dark-800/40 mb-1.5">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">${icon}</span>
+          <div>
+            <span class="text-xs text-dark-200">${j['Image Count'] || 12} images</span>
+            ${j.Version ? '<span class="text-xs text-emerald-400 ml-2">' + j.Version + '</span>' : ''}
+            ${j.Error ? '<span class="text-xs text-red-400 ml-2">' + j.Error.substring(0, 40) + '</span>' : ''}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-dark-500">${time}</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${color}">${status}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+  // Auto-refresh if any job is processing
+  if (jobs.some(j => (j.Status || '').toLowerCase() === 'processing')) {
+    setTimeout(() => loadCreativeQueueStatus(clientName), 10000);
   }
 }
 
