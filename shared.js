@@ -7259,3 +7259,103 @@ var _origRenderDontTouch = renderDontTouch;
 renderDontTouch = function() {
   if (document.getElementById('view-donttouch')) _origRenderDontTouch();
 };
+
+// ═══════════════════════════════════════════════
+// V2: SIDEBAR FIXES
+// ═══════════════════════════════════════════════
+
+// 1. Highlight active page in sidebar based on current URL
+(function highlightActivePage() {
+  const page = window.location.pathname.split('/').pop() || 'dashboard.html';
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get('view');
+  const param = params.get('param');
+
+  // Remove all existing active classes
+  document.querySelectorAll('.nav-item.active').forEach(el => el.classList.remove('active'));
+
+  // Set active based on current page
+  if (page === 'dashboard.html' && !view) {
+    document.getElementById('nav-dashboard')?.classList.add('active');
+  } else if (page === 'dashboard.html' && view === 'manager' && param) {
+    const key = param.toLowerCase().replace(/\s+/g, '-');
+    document.getElementById('nav-mgr-' + key)?.classList.add('active');
+  } else if (page === 'dashboard.html' && view === 'pod' && param) {
+    const podId = 'nav-pod-' + param.replace(/\s+/g, '-');
+    document.getElementById(podId)?.classList.add('active');
+  } else if (page === 'billing.html') {
+    document.getElementById('nav-billing')?.classList.add('active');
+  } else if (page === 'admin.html') {
+    document.getElementById('nav-admin')?.classList.add('active');
+  } else if (page === 'donttouch.html') {
+    document.getElementById('nav-donttouch')?.classList.add('active');
+  }
+})();
+
+// 2. Re-highlight after sidebar managers/pods are rendered (they get rebuilt by loadAllData)
+var _origRenderSidebarManagers = renderSidebarManagers;
+renderSidebarManagers = function() {
+  _origRenderSidebarManagers();
+  // Re-apply active highlight for manager pages
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('view') === 'manager' && params.get('param')) {
+    const key = params.get('param').toLowerCase().replace(/\s+/g, '-');
+    document.getElementById('nav-mgr-' + key)?.classList.add('active');
+  }
+};
+var _origRenderSidebarPods = renderSidebarPods;
+renderSidebarPods = function() {
+  _origRenderSidebarPods();
+  // Re-apply active highlight for pod pages
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('view') === 'pod' && params.get('param')) {
+    const podId = 'nav-pod-' + params.get('param').replace(/\s+/g, '-');
+    document.getElementById(podId)?.classList.add('active');
+  }
+};
+
+// 3. Collapsible sidebar toggle
+var sidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+
+function toggleSidebarCollapse() {
+  sidebarCollapsed = !sidebarCollapsed;
+  localStorage.setItem('sidebar_collapsed', sidebarCollapsed);
+  applySidebarState();
+}
+
+function applySidebarState() {
+  const sidebar = document.querySelector('.sidebar');
+  const main = document.querySelector('.main-content');
+  const collapseBtn = document.getElementById('sidebar-collapse-btn');
+  if (!sidebar || !main) return;
+
+  if (sidebarCollapsed) {
+    sidebar.style.transform = 'translateX(-100%)';
+    main.style.marginLeft = '0';
+    if (collapseBtn) collapseBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>';
+  } else {
+    sidebar.style.transform = 'translateX(0)';
+    main.style.marginLeft = '';
+    if (collapseBtn) collapseBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M19 19l-7-7 7-7"/></svg>';
+  }
+}
+
+// Inject collapse button into sidebar and apply saved state on load
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    sidebar.style.transition = 'transform 0.25s ease';
+    const main = document.querySelector('.main-content');
+    if (main) main.style.transition = 'margin-left 0.25s ease';
+
+    // Add collapse button at top of sidebar
+    const btn = document.createElement('button');
+    btn.id = 'sidebar-collapse-btn';
+    btn.className = 'absolute top-4 right-[-36px] z-[201] w-8 h-8 rounded-r-lg bg-dark-800 border border-dark-600/50 border-l-0 flex items-center justify-center text-dark-400 hover:text-white transition-colors';
+    btn.onclick = toggleSidebarCollapse;
+    sidebar.style.position = 'fixed';
+    sidebar.appendChild(btn);
+
+    applySidebarState();
+  }
+});
