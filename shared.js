@@ -7542,9 +7542,7 @@ async function saveCreativeForgeLocale(clientName) {
 
 function showImagePreview(url, name) {
   const overlay = document.createElement('div');
-  overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center';
-  overlay.style.background = 'rgba(0,0,0,0.85)';
-  overlay.style.backdropFilter = 'blur(8px)';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);';
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
   overlay.innerHTML = `
