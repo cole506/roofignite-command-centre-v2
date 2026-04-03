@@ -4695,7 +4695,7 @@ function renderAdminView() {
           <svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           <span class="mobile-hide">New</span> Mgr
         </button>
-        <button onclick="adminShowNewClient=true;renderAdminView()" class="flex items-center gap-1.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-semibold hover:from-brand-600 hover:to-brand-700 transition-all shadow-lg shadow-brand-500/20">
+        <button onclick="openNewClientModal()" class="flex items-center gap-1.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-semibold hover:from-brand-600 hover:to-brand-700 transition-all shadow-lg shadow-brand-500/20">
           <svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
           <span class="mobile-hide">New</span> Client
         </button>
@@ -4746,6 +4746,7 @@ function renderAdminView() {
 
     ${adminShowNewManager ? renderNewManagerForm() : ''}
     ${adminShowNewClient ? renderNewClientForm(managers) : ''}
+    <!-- New Client Modal rendered separately -->
 
     <!-- Greg Control Center -->
     <div class="glass rounded-2xl p-5 mb-6">
@@ -7535,6 +7536,369 @@ async function saveCreativeForgeLocale(clientName) {
     showToast('Save failed: ' + (result.error || 'Unknown error'), 'error');
   }
 }
+
+// ═══════════════════════════════════════════════
+// NEW CLIENT MODAL (2-step)
+// ═══════════════════════════════════════════════
+
+let _newClientStep = 1;
+let _newClientName = '';
+
+function openNewClientModal() {
+  _newClientStep = 1;
+  _newClientName = '';
+  const managers = getManagers();
+
+  const modal = document.createElement('div');
+  modal.id = 'new-client-modal';
+  modal.className = 'fixed inset-0 z-[500] flex items-start justify-center overflow-y-auto';
+  modal.style.background = 'rgba(0,0,0,0.7)';
+  modal.style.backdropFilter = 'blur(4px)';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="w-full max-w-3xl mx-4 my-8 rounded-2xl" style="background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.9));border:1px solid rgba(148,163,184,0.1);">
+      <div class="flex items-center justify-between p-6 border-b border-dark-600/30">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            New Client
+          </h2>
+          <p class="text-dark-400 text-sm mt-1" id="ncm-step-label">Step 1 of 2 — Client Details</p>
+        </div>
+        <button onclick="document.getElementById('new-client-modal').remove()" class="text-dark-400 hover:text-white transition-colors p-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="ncm-body" class="p-6">
+        ${renderNewClientStep1(managers)}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function renderNewClientStep1(managers) {
+  if (!managers) managers = getManagers();
+  return `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Client Name *</label>
+        <input id="ncm-name" type="text" placeholder="e.g. Apex Roofing" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500" />
+        <div class="text-[9px] text-red-400/80 mt-1">Must match the logbook name EXACTLY</div>
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Account Manager *</label>
+        <select id="ncm-manager" onchange="ncmUpdatePod()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500">
+          ${managers.map(m => '<option value="' + m + '">' + m + '</option>').join('')}
+        </select>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Pod *</label>
+        <select id="ncm-pod" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500">
+          ${Object.keys(SHEETS).map(p => {
+            const label = p.replace(/ - RoofIgnite/i, '');
+            const autoSelected = (managerPodMap[managers[0]] === p) ? 'selected' : '';
+            return '<option value="' + p + '" ' + autoSelected + '>' + label + '</option>';
+          }).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Meta Ad Account ID</label>
+        <input id="ncm-adid" type="text" placeholder="e.g. 1234567890" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500" />
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Booked Goal</label>
+        <input id="ncm-booked" type="number" placeholder="6" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Daily Budget ($)</label>
+        <input id="ncm-daily" type="number" placeholder="50" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500" />
+        <div class="text-[9px] text-dark-500 mt-1">Monthly = daily × 28</div>
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Cycle Start Date</label>
+        <input id="ncm-start" type="date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-4 py-2.5 focus:outline-none focus:border-brand-500" />
+      </div>
+    </div>
+    <div class="flex justify-end gap-3">
+      <button onclick="document.getElementById('new-client-modal').remove()" class="px-5 py-2 rounded-xl text-sm font-medium text-dark-300 hover:text-white bg-dark-700/50 border border-dark-600/30 transition-all">Cancel</button>
+      <button onclick="ncmGoToStep2()" class="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-lg shadow-brand-500/20 transition-all">Next → Creative Forge</button>
+    </div>
+  `;
+}
+
+function ncmUpdatePod() {
+  const mgr = document.getElementById('ncm-manager')?.value;
+  const podSelect = document.getElementById('ncm-pod');
+  if (podSelect && mgr && managerPodMap[mgr]) {
+    const autoPod = managerPodMap[mgr];
+    if (podSelect.querySelector('option[value="' + autoPod + '"]')) {
+      podSelect.value = autoPod;
+    }
+  }
+}
+
+async function ncmGoToStep2() {
+  // Validate step 1
+  const name = document.getElementById('ncm-name')?.value?.trim();
+  if (!name) { showToast('Please enter a client name', 'error'); return; }
+  if (allAccounts.find(a => a.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Client already exists in the sheet', 'error'); return;
+  }
+
+  _newClientName = name;
+  _newClientStep = 2;
+
+  const stepLabel = document.getElementById('ncm-step-label');
+  if (stepLabel) stepLabel.textContent = 'Step 2 of 2 — Creative Forge Setup';
+
+  const body = document.getElementById('ncm-body');
+  if (!body) return;
+
+  body.innerHTML = `
+    <div class="mb-5">
+      <p class="text-dark-300 text-sm">Set up Creative Forge for <strong class="text-white">${name}</strong>. You can skip this and add later from the account page.</p>
+    </div>
+
+    <!-- Locale -->
+    <div class="mb-5">
+      <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1.5 block">Client Location / Locale</label>
+      <input type="text" id="ncm-locale" placeholder="e.g. Fort Lauderdale, Florida (South Florida)" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-4 py-2.5 focus:outline-none focus:border-purple-500 transition-colors" />
+    </div>
+
+    <!-- Upload sections -->
+    <div class="mb-5">
+      <div class="flex items-center justify-between mb-2">
+        <div><h3 class="text-sm font-semibold text-white">Approved Reps</h3><p class="text-xs text-dark-500">Photos of company representatives</p></div>
+        <label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
+          + Upload <input type="file" accept="image/*" multiple class="hidden" onchange="ncmStageFiles(event, 'reps')" />
+        </label>
+      </div>
+      <div id="ncm-preview-reps" class="grid grid-cols-6 gap-2 min-h-[40px]"><span class="col-span-full text-xs text-dark-500">No files selected</span></div>
+    </div>
+
+    <div class="mb-5">
+      <div class="flex items-center justify-between mb-2">
+        <div><h3 class="text-sm font-semibold text-white">Approved Logos</h3><p class="text-xs text-dark-500">Company logo files</p></div>
+        <label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
+          + Upload <input type="file" accept="image/*" multiple class="hidden" onchange="ncmStageFiles(event, 'logos')" />
+        </label>
+      </div>
+      <div id="ncm-preview-logos" class="grid grid-cols-6 gap-2 min-h-[40px]"><span class="col-span-full text-xs text-dark-500">No files selected</span></div>
+    </div>
+
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <div><h3 class="text-sm font-semibold text-white">Approved Vehicles</h3><p class="text-xs text-dark-500">Company truck/vehicle photos</p></div>
+        <label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
+          + Upload <input type="file" accept="image/*" multiple class="hidden" onchange="ncmStageFiles(event, 'vehicles')" />
+        </label>
+      </div>
+      <div id="ncm-preview-vehicles" class="grid grid-cols-6 gap-2 min-h-[40px]"><span class="col-span-full text-xs text-dark-500">No files selected</span></div>
+    </div>
+
+    <div class="flex justify-between gap-3">
+      <button onclick="ncmBackToStep1()" class="px-5 py-2 rounded-xl text-sm font-medium text-dark-300 hover:text-white bg-dark-700/50 border border-dark-600/30 transition-all">← Back</button>
+      <div class="flex gap-3">
+        <button onclick="ncmFinish(true)" class="px-5 py-2 rounded-xl text-sm font-medium text-dark-400 hover:text-white bg-dark-700/50 border border-dark-600/30 transition-all">Add Later</button>
+        <button onclick="ncmFinish(false)" class="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/20 transition-all">Create Client</button>
+      </div>
+    </div>
+  `;
+}
+
+// Staged files for new client upload
+let _ncmStagedFiles = { reps: [], logos: [], vehicles: [] };
+
+function ncmStageFiles(event, category) {
+  const files = Array.from(event.target.files || []);
+  _ncmStagedFiles[category] = [..._ncmStagedFiles[category], ...files];
+
+  const grid = document.getElementById('ncm-preview-' + category);
+  if (!grid) return;
+
+  grid.innerHTML = _ncmStagedFiles[category].map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return '<div class="relative rounded-lg overflow-hidden border border-dark-600/30" style="aspect-ratio:1;">' +
+      '<img src="' + url + '" class="w-full h-full object-cover" />' +
+      '<button onclick="_ncmStagedFiles.' + category + '.splice(' + i + ',1);ncmRefreshPreview(\'' + category + '\')" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500/80 text-white flex items-center justify-center text-xs hover:bg-red-500">×</button>' +
+      '<div class="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5 text-[8px] text-dark-200 truncate">' + f.name + '</div>' +
+    '</div>';
+  }).join('') || '<span class="col-span-full text-xs text-dark-500">No files selected</span>';
+
+  event.target.value = '';
+}
+
+function ncmRefreshPreview(category) {
+  ncmStageFiles({ target: { files: [] } }, '___'); // dummy to not add files
+  // Re-render the grid
+  const grid = document.getElementById('ncm-preview-' + category);
+  if (!grid) return;
+  grid.innerHTML = _ncmStagedFiles[category].map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return '<div class="relative rounded-lg overflow-hidden border border-dark-600/30" style="aspect-ratio:1;">' +
+      '<img src="' + url + '" class="w-full h-full object-cover" />' +
+      '<button onclick="_ncmStagedFiles.' + category + '.splice(' + i + ',1);ncmRefreshPreview(\'' + category + '\')" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500/80 text-white flex items-center justify-center text-xs hover:bg-red-500">×</button>' +
+      '<div class="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5 text-[8px] text-dark-200 truncate">' + f.name + '</div>' +
+    '</div>';
+  }).join('') || '<span class="col-span-full text-xs text-dark-500">No files selected</span>';
+}
+
+function ncmBackToStep1() {
+  _newClientStep = 1;
+  const stepLabel = document.getElementById('ncm-step-label');
+  if (stepLabel) stepLabel.textContent = 'Step 1 of 2 — Client Details';
+  const body = document.getElementById('ncm-body');
+  if (body) body.innerHTML = renderNewClientStep1();
+  // Restore name if we had it
+  if (_newClientName) {
+    const nameInput = document.getElementById('ncm-name');
+    if (nameInput) nameInput.value = _newClientName;
+  }
+}
+
+async function ncmFinish(skipCreativeForge) {
+  // Read step 1 values (might be from stored state or re-read)
+  const modal = document.getElementById('new-client-modal');
+  const name = _newClientName;
+  if (!name) { showToast('No client name', 'error'); return; }
+
+  // Read step 1 values from the modal if we're still on step 1, otherwise use defaults
+  // These were validated in ncmGoToStep2
+  const mgr = document.getElementById('ncm-manager')?.value || getManagers()[0];
+  const pod = document.getElementById('ncm-pod')?.value || Object.keys(SHEETS)[0];
+  const adId = (document.getElementById('ncm-adid')?.value || '').trim().replace(/^act_/i, '');
+  const bookedGoal = parseFloat(document.getElementById('ncm-booked')?.value) || null;
+  const dailyBudget = parseFloat(document.getElementById('ncm-daily')?.value) || null;
+  const startDate = document.getElementById('ncm-start')?.value || new Date().toISOString().split('T')[0];
+  const endDate = new Date(new Date(startDate).getTime() + 28 * 86400000).toISOString().split('T')[0];
+
+  // If we're on step 2, read step 1 values won't work (they're gone). Store them in step transition.
+  // Actually we need to store them. Let me use the _ncmStep1Data approach.
+
+  const locale = document.getElementById('ncm-locale')?.value?.trim() || '';
+
+  // Show progress
+  const btn = event?.target?.closest('button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating...'; }
+
+  // Create the client in the sheet
+  const cycle1 = {
+    account: name, adAccountId: adId, pod, manager: mgr,
+    cycle: 'Cycle 1', cycleStartDate: startDate, cycleEndDate: endDate,
+    bookedGoal, gregGoal: bookedGoal, cpaGoal: null, dailyBudget, monthlyBudget: dailyBudget ? dailyBudget * 28 : null,
+    totalLeads: null, osaPct: null, bookedAppts: null, estBookedAppts: null,
+    cpa: null, amountSpent: null, linkCTR: null, linkCPC: null,
+    cpm: null, frequency: null, surveyPct: null,
+    cpcMedian: null, cpcMultiplier: null,
+    accountManager: mgr, notes: '', goodToBill: 'No', billed: 'No', billingNotes: ''
+  };
+
+  const newAcct = {
+    name, manager: mgr, pod, adAccountId: adId, section: '',
+    isPaused: false, status: 'Q1 Onboarded',
+    bookedGoal, gregGoal: bookedGoal, cpaGoal: null, dailyBudget, monthlyBudget: dailyBudget ? dailyBudget * 28 : null,
+    cycleStartDate: startDate, cycleEndDate: endDate,
+    cycles: [cycle1]
+  };
+
+  allAccounts.push(newAcct);
+
+  if (APPS_SCRIPT_URL) {
+    const result = await writeToSheet('createClient', newAcct);
+    if (result.ok) {
+      showToast('Client created in sheet ✓', 'success');
+    } else {
+      showToast('Sheet save failed: ' + (result.error || ''), 'error');
+    }
+
+    // Create Drive folders (check for dupes)
+    const checkResult = await writeToSheet('checkClientFolder', { clientName: name }, { silent: true });
+    if (checkResult.ok && checkResult.exists) {
+      if (confirm('A folder named "' + name + '" already exists in Master Creatives. Use the existing folder?')) {
+        await writeToSheet('createClientFolder', { clientName: name }, { silent: true });
+      }
+    } else {
+      await writeToSheet('createClientFolder', { clientName: name }, { silent: true });
+      showToast('Drive folders created ✓', 'success');
+    }
+
+    // Save locale if provided
+    if (!skipCreativeForge && locale) {
+      await writeToSheet('saveClientLocale', { clientName: name, locale }, { silent: true });
+    }
+
+    // Upload staged files
+    if (!skipCreativeForge) {
+      const uploadMap = { reps: 'Approved AI References/Reps', logos: 'Approved AI References/Logos', vehicles: 'Approved AI References/Vehicles' };
+      for (const [category, subfolder] of Object.entries(uploadMap)) {
+        for (const file of _ncmStagedFiles[category]) {
+          try {
+            const base64 = await fileToBase64(file);
+            await writeToSheet('uploadCreativeFile', {
+              clientName: name, subfolder, fileName: file.name, base64, mimeType: file.type
+            });
+          } catch(e) {
+            console.warn('Upload failed:', file.name, e);
+          }
+        }
+      }
+      const totalUploaded = _ncmStagedFiles.reps.length + _ncmStagedFiles.logos.length + _ncmStagedFiles.vehicles.length;
+      if (totalUploaded > 0) showToast(totalUploaded + ' file(s) uploaded ✓', 'success');
+    }
+  }
+
+  // Reset staged files
+  _ncmStagedFiles = { reps: [], logos: [], vehicles: [] };
+
+  // Close modal and refresh admin
+  if (modal) modal.remove();
+  saveDataCache();
+  renderAdminView();
+}
+
+// Store step 1 data when transitioning to step 2
+let _ncmStep1Data = {};
+const _origNcmGoToStep2 = ncmGoToStep2;
+ncmGoToStep2 = async function() {
+  // Store step 1 values before they disappear
+  _ncmStep1Data = {
+    manager: document.getElementById('ncm-manager')?.value,
+    pod: document.getElementById('ncm-pod')?.value,
+    adId: document.getElementById('ncm-adid')?.value,
+    bookedGoal: document.getElementById('ncm-booked')?.value,
+    dailyBudget: document.getElementById('ncm-daily')?.value,
+    startDate: document.getElementById('ncm-start')?.value,
+  };
+  await _origNcmGoToStep2();
+};
+
+// Override ncmFinish to use stored step 1 data
+const _origNcmFinish = ncmFinish;
+ncmFinish = async function(skipCreativeForge) {
+  // Patch the DOM with stored values if we're on step 2
+  if (_newClientStep === 2 && _ncmStep1Data.manager) {
+    // These elements don't exist on step 2, so we inject hidden ones
+    const body = document.getElementById('ncm-body');
+    if (body && !document.getElementById('ncm-manager')) {
+      body.insertAdjacentHTML('beforeend',
+        '<input type="hidden" id="ncm-manager" value="' + (_ncmStep1Data.manager || '') + '">' +
+        '<input type="hidden" id="ncm-pod" value="' + (_ncmStep1Data.pod || '') + '">' +
+        '<input type="hidden" id="ncm-adid" value="' + (_ncmStep1Data.adId || '') + '">' +
+        '<input type="hidden" id="ncm-booked" value="' + (_ncmStep1Data.bookedGoal || '') + '">' +
+        '<input type="hidden" id="ncm-daily" value="' + (_ncmStep1Data.dailyBudget || '') + '">' +
+        '<input type="hidden" id="ncm-start" value="' + (_ncmStep1Data.startDate || '') + '">'
+      );
+    }
+  }
+  await _origNcmFinish(skipCreativeForge);
+};
 
 // V2 OVERRIDES
 var _origNav = typeof navigate !== 'undefined' ? navigate : function(){};
