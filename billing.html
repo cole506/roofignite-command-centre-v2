@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>RoofIgnite - Billing</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>😊</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="config.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        dark: { 50:'#f8fafc',100:'#e2e8f0',200:'#cbd5e1',300:'#94a3b8',400:'#64748b',500:'#475569',600:'#334155',700:'#1e293b',800:'#0f172a',900:'#020617' },
+        brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c' },
+        success:'#22c55e', warning:'#eab308', danger:'#ef4444',
+      }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="min-h-screen">
+
+<!-- Login Gate -->
+<div id="login-gate" class="fixed inset-0 z-[999] flex items-center justify-center" style="background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%);">
+  <div class="text-center max-w-full sm:max-w-md mx-auto px-4 sm:px-6">
+    <div class="mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <h1 class="text-2xl font-extrabold text-white tracking-tight">RoofIgnite</h1>
+      <p class="text-dark-400 text-sm mt-1">Command Center</p>
+    </div>
+    <p class="text-dark-300 text-sm mb-6">Sign in with your <span class="text-brand-400 font-semibold">@roofignite.com</span> account to continue</p>
+    <div id="google-signin-btn" class="flex justify-center mb-4"></div>
+    <div id="login-error" class="hidden mt-4 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+    <div id="login-loading" class="hidden mt-4 text-dark-400 text-sm flex items-center justify-center gap-2">
+      <div class="w-4 h-4 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+      Verifying session...
+    </div>
+  </div>
+</div>
+
+<div id="app" class="flex min-h-screen hidden">
+  <!-- Mobile Header -->
+  <div class="mobile-header fixed top-0 left-0 right-0 z-[150] items-center justify-between px-3 py-2 border-b border-dark-600/30" style="background:rgba(6,11,24,0.95);backdrop-filter:blur(12px);display:none;">
+    <button onclick="toggleSidebar()" class="p-2 rounded-lg text-dark-200 hover:text-white hover:bg-dark-700/50 transition-all flex-shrink-0">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="text-sm font-semibold text-dark-200">RoofIgnite</span>
+    <button onclick="location.reload()" class="p-2 rounded-lg text-dark-200 hover:text-white hover:bg-dark-700/50 transition-all flex-shrink-0">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    </button>
+  </div>
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar fixed left-0 top-0 h-screen flex flex-col z-[200]">
+    <div class="p-5 border-b border-dark-600/50">
+      <div class="flex items-center justify-center">
+        <div class="text-xl font-bold text-white">RoofIgnite</div>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-1">Overview</div>
+      <a href="dashboard.html" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-200 hover:text-white transition-all cursor-pointer">
+        <svg class="w-[18px] h-[18px] opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+        <span class="font-medium">Dashboard</span>
+      </a>
+
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-5">Managers</div>
+      <div id="sidebar-managers"></div>
+
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-5">Pods</div>
+      <div id="sidebar-pods"></div>
+
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-5">Quick Jump</div>
+      <div class="px-3">
+        <select id="account-select" onchange="navigateToAccount(this.value)" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-3 py-2.5 appearance-none pr-8 focus:outline-none focus:border-brand-500">
+          <option value="">Search accounts…</option>
+        </select>
+      </div>
+
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-5">Finance</div>
+      <a href="billing.html" id="nav-billing" class="nav-item active w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-200 hover:text-white transition-all cursor-pointer">
+        <svg class="w-[18px] h-[18px] opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="font-medium">Billing Tracker</span>
+      </a>
+
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-5">Focus</div>
+      <a href="donttouch.html" id="nav-donttouch" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-200 hover:text-white transition-all cursor-pointer">
+        <svg class="w-[18px] h-[18px] opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span class="font-medium">Gamble Mode</span>
+      </a>
+
+      <div class="text-[9px] uppercase tracking-[0.15em] text-dark-400 font-semibold px-4 mb-2 mt-5">Admin</div>
+      <a href="admin.html" id="nav-admin" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-200 hover:text-white transition-all cursor-pointer">
+        <svg class="w-[18px] h-[18px] opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="font-medium">Manage</span>
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-dark-600/30">
+      <div class="flex items-center gap-2.5 text-xs text-dark-400">
+        <div id="data-status" class="w-2 h-2 rounded-full bg-yellow-500 pulse"></div>
+        <span id="data-status-text">Loading…</span>
+      </div>
+      <button onclick="location.reload()" class="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-dark-700/50 hover:bg-dark-600/50 text-dark-300 hover:text-white text-xs transition-all">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Refresh Data
+      </button>
+      <div id="sidebar-user" class="mt-3 flex items-center gap-2.5">
+        <img id="sidebar-user-pic" class="w-7 h-7 rounded-full" src="" alt="" style="display:none" />
+        <div class="flex-1 min-w-0">
+          <div id="sidebar-user-name" class="text-xs text-dark-200 font-medium truncate"></div>
+          <div id="sidebar-user-email" class="text-[10px] text-dark-500 truncate"></div>
+        </div>
+        <button onclick="handleSignOut()" class="text-dark-500 hover:text-red-400 transition-colors" title="Sign out">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 ml-0 md:ml-[260px] p-4 md:p-8 pt-[72px] md:pt-8 main-content" style="height:100vh;overflow-y:auto">
+    <div id="loading-state" class="flex items-center justify-center h-96">
+      <div class="text-center fade-in">
+        <div class="relative mx-auto mb-4" style="width:40px;height:40px;">
+          <div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(100,116,139,0.15);"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#d4a843;animation:spin 0.8s linear infinite;"></div>
+        </div>
+        <p class="text-dark-300 text-sm">Loading…</p>
+      </div>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    <div id="view-billing" class="hidden fade-in"></div>
+  </main>
+</div>
+
+<script src="shared.js"></script>
+<script src="billing.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const ok = checkExistingSession();
+  if (!ok) return;
+  await loadAllData();
+  document.getElementById('loading-state').classList.add('hidden');
+  renderBilling();
+});
+window.addEventListener('beforeunload', () => {
+  if (_billingNotesTimeout) {
+    const fn = _billingNotesPendingSave;
+    clearTimeout(_billingNotesTimeout);
+    if (typeof fn === 'function') fn();
+  }
+});
+</script>
+</body>
+</html>
