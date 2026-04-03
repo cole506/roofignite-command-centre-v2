@@ -4617,7 +4617,7 @@ function renderSidebarManagers() {
     const acctCount = allAccounts.filter(a => a.manager === m).length;
     return `
       <button onclick="navigate('manager', '${esc(m)}')" id="nav-mgr-${key}" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-200 hover:text-white transition-all">
-        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-${c.from}/20 to-${c.to}/20 flex items-center justify-center text-[10px] font-bold text-${c.text} border border-${c.border}/20">${initial}</div>
+        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-${c.from}/20 to-${c.to}/20 flex items-center justify-center text-[10px] font-bold text-${c.text}">${initial}</div>
         <span class="font-medium">${m}</span>
         <span class="ml-auto text-[10px] text-dark-500">${acctCount}</span>
         <span id="alert-badge-${key}" class="badge badge-red hidden text-[10px]">0</span>
