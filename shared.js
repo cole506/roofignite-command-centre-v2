@@ -6628,7 +6628,7 @@ const WRITE_ACTION_LABELS = {
   deletePod:            'Deleting pod',
 };
 // Read-only actions that should NOT show the blocking modal
-const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles'];
+const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale'];
 
 function showWriteProgressModal_(action) {
   const label = WRITE_ACTION_LABELS[action] || 'Saving changes';
@@ -7345,8 +7345,17 @@ async function loadCreativeForgeContent(clientName) {
     return;
   }
 
-  // Load locale from cache or fetch
-  let locale = _cfLocaleCache[clientName] || '';
+  // Load locale from cache or fetch from sheet
+  let locale = _cfLocaleCache[clientName];
+  if (locale === undefined) {
+    try {
+      const localeResult = await writeToSheet('getClientLocale', { clientName }, { silent: true });
+      locale = (localeResult.ok && localeResult.locale) ? localeResult.locale : '';
+      _cfLocaleCache[clientName] = locale;
+    } catch(e) {
+      locale = '';
+    }
+  }
 
   // Build the sections
   let html = `
