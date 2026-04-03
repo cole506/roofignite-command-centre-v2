@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roofignite-v2-cache-v1';
+const CACHE_NAME = 'roofignite-v2-cache-v2';
 const PRECACHE_URLS = [
   'dashboard.html',
   'account.html',
@@ -7,6 +7,7 @@ const PRECACHE_URLS = [
   'donttouch.html',
   'shared.min.js',
   'shared.css',
+  'tailwind.built.css',
   'config.js',
 ];
 

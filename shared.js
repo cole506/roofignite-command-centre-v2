@@ -1261,9 +1261,57 @@ function getDate(row, idx) {
   return String(v);
 }
 
+const DATA_CACHE_KEY = 'roofignite_data_cache';
+const DATA_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
+function saveDataCache() {
+  try {
+    sessionStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      allAccounts, allCycles, allLeads, managerPodMap, SHEETS
+    }));
+  } catch(e) { /* sessionStorage full or unavailable */ }
+}
+
+function loadDataCache() {
+  try {
+    const raw = sessionStorage.getItem(DATA_CACHE_KEY);
+    if (!raw) return false;
+    const cached = JSON.parse(raw);
+    if (Date.now() - cached.ts > DATA_CACHE_TTL) return false;
+    allAccounts = cached.allAccounts;
+    allCycles = cached.allCycles;
+    allLeads = cached.allLeads;
+    managerPodMap = cached.managerPodMap;
+    if (cached.SHEETS) Object.assign(SHEETS, cached.SHEETS);
+    return true;
+  } catch(e) { return false; }
+}
+
 async function loadAllData(opts) {
   const silent = opts && opts.silent;
-  if (!silent) document.getElementById('loading-state').classList.remove('hidden');
+  if (!silent) document.getElementById('loading-state')?.classList.remove('hidden');
+
+  // v2: Try loading from sessionStorage cache for instant page transitions
+  if (!opts?.forceRefresh && loadDataCache()) {
+    console.log('[Cache] Loaded data from sessionStorage cache');
+    // Populate sidebar and account dropdown from cache
+    renderSidebarManagers();
+    renderSidebarPods();
+    // Populate account dropdown
+    const sel = document.getElementById('account-select');
+    if (sel) {
+      const active = allAccounts.filter(a => a.cycles && a.cycles.some(c => c.cycleEndDate >= getTodayStr())).sort((a,b) => a.name.localeCompare(b.name));
+      const inactive = allAccounts.filter(a => !active.includes(a)).sort((a,b) => a.name.localeCompare(b.name));
+      sel.innerHTML = '<option value="">Search accounts…</option>'
+        + active.map(a => `<option value="${a.name}|||${a.adAccountId||''}">${a.name}</option>`).join('')
+        + (inactive.length ? '<optgroup label="── Inactive ──">' + inactive.map(a => `<option value="${a.name}|||${a.adAccountId||''}">${a.name}</option>`).join('') + '</optgroup>' : '');
+    }
+    if (!silent) document.getElementById('loading-state')?.classList.add('hidden');
+    // Refresh data in background (silently update cache for next navigation)
+    setTimeout(() => loadAllData({ silent: true, forceRefresh: true }), 100);
+    return;
+  }
 
   // Auto-detect pod tabs from Google Sheet (so manually-added pods appear)
   if (APPS_SCRIPT_URL) {
@@ -1410,9 +1458,11 @@ async function loadAllData(opts) {
     }
   });
 
-  if (!silent) document.getElementById('loading-state').classList.add('hidden');
+  if (!silent) document.getElementById('loading-state')?.classList.add('hidden');
 
-  // v2: Skip auto-navigation — each page handles its own rendering
+  // v2: Save to cache for instant page transitions
+  saveDataCache();
+  console.log('[Cache] Data saved to sessionStorage');
 }
 
 let _refreshBusy = false;
