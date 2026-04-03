@@ -6869,7 +6869,7 @@ function onAuthSuccess(user, freshLogin) {
     if (user.picture) { pic.src = user.picture; } else { pic.classList.add('hidden'); }
   }
 
-  // v2: Don't auto-load here — each page's init handles loadAllData
+  // v2: Don't auto-call loadAllData — each page init handles it
 }
 
 function handleSignOut() {
@@ -7206,11 +7206,11 @@ function dtFinish() {
 }
 
 // ═══════════════════════════════════════════════
-// V2 OVERRIDES
+// INIT — v2: disabled, each page handles its own init
 // ═══════════════════════════════════════════════
-
-// Override navigate() for page-based nav
-const _originalNavigate = navigate;
+// checkExistingSession();
+// V2 OVERRIDES
+var _origNav = typeof navigate !== 'undefined' ? navigate : function(){};
 navigate = function(view, param) {
   switch(view) {
     case 'dashboard': window.location = 'dashboard.html'; break;
@@ -7223,22 +7223,15 @@ navigate = function(view, param) {
     default: window.location = 'dashboard.html'; break;
   }
 };
-
-// Override navigateToAccount for page-based nav
-const _originalNavigateToAccount = navigateToAccount;
+var _origNavAccount = typeof navigateToAccount !== 'undefined' ? navigateToAccount : function(){};
 navigateToAccount = function(val) {
   if (!val) return;
-  const [name, adId] = val.split('|||');
-  window.location = 'account.html?name=' + encodeURIComponent(name) + '&adAccountId=' + encodeURIComponent(adId || '');
+  var parts = val.split('|||');
+  window.location = 'account.html?name=' + encodeURIComponent(parts[0]) + '&adAccountId=' + encodeURIComponent(parts[1] || '');
 };
-
-// Bypass auth for testing
-const _originalCheckSession = checkExistingSession;
+var _origCheck = typeof checkExistingSession !== 'undefined' ? checkExistingSession : function(){};
 checkExistingSession = function() {
-  document.getElementById('login-gate')?.classList.add('hidden');
-  document.getElementById('app')?.classList.remove('hidden');
+  var lg = document.getElementById('login-gate'); if(lg) lg.classList.add('hidden');
+  var ap = document.getElementById('app'); if(ap) ap.classList.remove('hidden');
   return true;
 };
-
-// Don't auto-init — each page handles its own init
-// checkExistingSession();
