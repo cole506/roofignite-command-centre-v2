@@ -7280,7 +7280,7 @@ const CF_SECTIONS = [
   { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References', hint: 'Photos of company representatives' },
   { key: 'logos', label: 'Approved Logos', subfolder: 'Approved AI References', hint: 'Company logo files' },
   { key: 'vehicles', label: 'Approved Vehicles', subfolder: 'Approved AI References', hint: 'Company truck/vehicle photos' },
-  { key: 'topPerformers', label: 'Top Performers', subfolder: 'Top Performers', hint: 'Best-performing ad creatives' },
+  { key: 'topPerformers', label: 'Top Performers', subfolder: 'Top Performers', hint: 'Best-performing ad creatives', noUpload: true },
 ];
 
 async function openCreativeForgeModal(clientName) {
@@ -7370,11 +7370,11 @@ async function loadCreativeForgeContent(clientName) {
           <h3 class="text-sm font-semibold text-white">${section.label}</h3>
           <p class="text-xs text-dark-500">${section.hint}</p>
         </div>
-        <label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
+        ${section.noUpload ? '' : `<label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
           <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           Upload
           <input type="file" accept="image/*" multiple class="hidden" onchange="handleCreativeUpload(event, '${esc(clientName)}', '${section.subfolder}', '${section.key}')" />
-        </label>
+        </label>`}
       </div>
       <div id="cf-grid-${section.key}" class="grid grid-cols-4 md:grid-cols-6 gap-3">
         <div class="col-span-full text-center py-4 text-dark-500 text-xs">Loading...</div>
