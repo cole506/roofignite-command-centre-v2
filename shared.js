@@ -2292,25 +2292,9 @@ function decodeJwt(token) {
 }
 
 function checkExistingSession() {
-  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (!stored) { showLoginGate(); return false; }
-
-  try {
-    const user = JSON.parse(stored);
-    const ageMs = Date.now() - (user.timestamp || 0);
-    if (ageMs > AUTH_TTL_DAYS * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      showLoginGate();
-      return false;
-    }
-    // Session valid
-    onAuthSuccess(user, false);
-    return true;
-  } catch {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    showLoginGate();
-    return false;
-  }
+  // Auth bypassed for testing — auto-login as dev user
+  onAuthSuccess({ name: 'Dev User', email: 'dev@roofignite.com', picture: '' }, false);
+  return true;
 }
 
 function showLoginGate() {
