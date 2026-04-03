@@ -5623,6 +5623,26 @@ async function createNewClient() {
     } else {
       showToast(`⚠️ "${name}" created locally, but failed to save to Sheet`, 'error');
     }
+
+    // Auto-create Drive folder structure
+    try {
+      // Check if folder already exists (possible dupe from another client or old data)
+      const checkResult = await writeToSheet('checkClientFolder', { clientName: name }, { silent: true });
+      if (checkResult.ok && checkResult.exists) {
+        // Folder exists — ask user to confirm
+        if (confirm(`A folder named "${name}" already exists in Master Creatives. Use the existing folder? Click Cancel to skip folder creation.`)) {
+          // Ensure subfolders exist in the existing folder
+          await writeToSheet('createClientFolder', { clientName: name }, { silent: true });
+          showToast('Drive folders ready ✓', 'success');
+        }
+      } else {
+        // No existing folder — create it
+        await writeToSheet('createClientFolder', { clientName: name }, { silent: true });
+        showToast('Drive folders created ✓', 'success');
+      }
+    } catch(e) {
+      console.warn('Drive folder creation failed:', e);
+    }
   } else {
     showToast(`Created "${name}" under ${mgr} (local only — connect Apps Script to save)`, 'warning');
   }
@@ -6628,7 +6648,7 @@ const WRITE_ACTION_LABELS = {
   deletePod:            'Deleting pod',
 };
 // Read-only actions that should NOT show the blocking modal
-const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale'];
+const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale', 'checkClientFolder'];
 
 function showWriteProgressModal_(action) {
   const label = WRITE_ACTION_LABELS[action] || 'Saving changes';
