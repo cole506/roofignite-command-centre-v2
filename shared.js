@@ -2708,6 +2708,10 @@ function renderAccountDetail(name, adAccountId) {
             <svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Add Cycle
           </button>
+          <button onclick="openCreativeForgeModal('${esc(name)}')" class="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-semibold text-dark-200 hover:text-white bg-gradient-to-r from-purple-500/20 to-purple-600/20 hover:from-purple-500/30 hover:to-purple-600/30 border border-purple-500/30 transition-all">
+            <svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Creative Forge
+          </button>
         </div>
       </div>
     </div>
@@ -6624,7 +6628,7 @@ const WRITE_ACTION_LABELS = {
   deletePod:            'Deleting pod',
 };
 // Read-only actions that should NOT show the blocking modal
-const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry'];
+const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles'];
 
 function showWriteProgressModal_(action) {
   const label = WRITE_ACTION_LABELS[action] || 'Saving changes';
@@ -7265,6 +7269,245 @@ function dtFinish() {
 // INIT — v2: disabled, each page handles its own init
 // ═══════════════════════════════════════════════
 // checkExistingSession();
+// ═══════════════════════════════════════════════
+// CREATIVE FORGE MODAL
+// ═══════════════════════════════════════════════
+
+let _cfModalClient = null;
+let _cfLocaleCache = {};
+
+const CF_SECTIONS = [
+  { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References', hint: 'Photos of company representatives' },
+  { key: 'logos', label: 'Approved Logos', subfolder: 'Approved AI References', hint: 'Company logo files' },
+  { key: 'vehicles', label: 'Approved Vehicles', subfolder: 'Approved AI References', hint: 'Company truck/vehicle photos' },
+  { key: 'topPerformers', label: 'Top Performers', subfolder: 'Top Performers', hint: 'Best-performing ad creatives' },
+];
+
+async function openCreativeForgeModal(clientName) {
+  _cfModalClient = clientName;
+
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.id = 'cf-modal';
+  modal.className = 'fixed inset-0 z-[500] flex items-start justify-center overflow-y-auto';
+  modal.style.background = 'rgba(0,0,0,0.7)';
+  modal.style.backdropFilter = 'blur(4px)';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="w-full max-w-4xl mx-4 my-8 rounded-2xl" style="background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.9));border:1px solid rgba(148,163,184,0.1);">
+      <div class="flex items-center justify-between p-6 border-b border-dark-600/30">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Creative Forge
+          </h2>
+          <p class="text-dark-400 text-sm mt-1">${clientName}</p>
+        </div>
+        <button onclick="document.getElementById('cf-modal').remove()" class="text-dark-400 hover:text-white transition-colors p-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="cf-modal-body" class="p-6">
+        <div class="flex items-center justify-center py-12">
+          <div class="w-6 h-6 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+          <span class="ml-3 text-dark-400 text-sm">Loading creative assets...</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Load content
+  await loadCreativeForgeContent(clientName);
+}
+
+async function loadCreativeForgeContent(clientName) {
+  const body = document.getElementById('cf-modal-body');
+  if (!body) return;
+
+  // Check if folder exists by listing one subfolder
+  const testResult = await writeToSheet('listCreativeFiles', { clientName, subfolder: 'Top Performers' }, { silent: true });
+
+  if (testResult.folderMissing) {
+    body.innerHTML = `
+      <div class="text-center py-12">
+        <svg class="w-12 h-12 text-dark-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        <p class="text-dark-300 text-lg font-semibold mb-2">No folder found for "${clientName}"</p>
+        <p class="text-dark-500 text-sm mb-6">Create the client folder in Master Creatives to manage creative assets.</p>
+        <button onclick="createClientFolderAndRefresh('${esc(clientName)}')" class="px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/20 transition-all">
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Create Folder
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // Load locale from cache or fetch
+  let locale = _cfLocaleCache[clientName] || '';
+
+  // Build the sections
+  let html = `
+    <!-- Locale Setting -->
+    <div class="mb-6">
+      <label class="text-xs uppercase tracking-wider text-dark-400 font-semibold mb-2 block">Client Location / Locale</label>
+      <div class="flex gap-2">
+        <input type="text" id="cf-locale-input" value="${locale}" placeholder="e.g. Fort Lauderdale, Florida (South Florida)" class="flex-1 bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-4 py-2.5 focus:outline-none focus:border-purple-500 transition-colors" />
+        <button onclick="saveCreativeForgeLocale('${esc(clientName)}')" class="px-4 py-2 rounded-xl text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all">Save</button>
+      </div>
+    </div>
+    <hr class="border-dark-600/30 mb-6">
+  `;
+
+  // Add each image section
+  for (const section of CF_SECTIONS) {
+    html += `
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-sm font-semibold text-white">${section.label}</h3>
+          <p class="text-xs text-dark-500">${section.hint}</p>
+        </div>
+        <label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
+          <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Upload
+          <input type="file" accept="image/*" multiple class="hidden" onchange="handleCreativeUpload(event, '${esc(clientName)}', '${section.subfolder}', '${section.key}')" />
+        </label>
+      </div>
+      <div id="cf-grid-${section.key}" class="grid grid-cols-4 md:grid-cols-6 gap-3">
+        <div class="col-span-full text-center py-4 text-dark-500 text-xs">Loading...</div>
+      </div>
+    </div>
+    `;
+  }
+
+  body.innerHTML = html;
+
+  // Load files for each section in parallel
+  await Promise.all(CF_SECTIONS.map(s => loadCreativeSection(clientName, s.subfolder, s.key)));
+}
+
+async function loadCreativeSection(clientName, subfolder, key) {
+  const grid = document.getElementById('cf-grid-' + key);
+  if (!grid) return;
+
+  const result = await writeToSheet('listCreativeFiles', { clientName, subfolder }, { silent: true });
+
+  if (!result.ok) {
+    grid.innerHTML = '<div class="col-span-full text-center py-4 text-red-400 text-xs">Error loading files</div>';
+    return;
+  }
+
+  const files = result.files || [];
+  if (files.length === 0) {
+    grid.innerHTML = '<div class="col-span-full text-center py-4 text-dark-500 text-xs">No files yet — upload some above</div>';
+    return;
+  }
+
+  grid.innerHTML = files.map(f => `
+    <div class="relative group rounded-xl overflow-hidden border border-dark-600/30 hover:border-purple-500/30 transition-all" style="aspect-ratio:1;">
+      <img src="${f.thumbnailUrl}" alt="${f.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 100\\'><rect fill=\\'%231e293b\\' width=\\'100\\' height=\\'100\\'/><text x=\\'50\\' y=\\'55\\' text-anchor=\\'middle\\' fill=\\'%2364748b\\' font-size=\\'12\\'>No preview</text></svg>'" />
+      <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <button onclick="deleteCreativeFile('${f.id}', '${esc(clientName)}', '${subfolder}', '${key}')" class="p-2 rounded-full bg-red-500/80 hover:bg-red-500 text-white transition-all" title="Delete">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-dark-200 truncate">${f.name}</div>
+    </div>
+  `).join('');
+}
+
+async function handleCreativeUpload(event, clientName, subfolder, key) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const grid = document.getElementById('cf-grid-' + key);
+  if (grid) {
+    const spinner = document.createElement('div');
+    spinner.className = 'col-span-full text-center py-2 text-purple-400 text-xs';
+    spinner.innerHTML = '<div class="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin inline-block mr-2"></div>Uploading...';
+    grid.prepend(spinner);
+  }
+
+  for (const file of files) {
+    try {
+      const base64 = await fileToBase64(file);
+      await writeToSheet('uploadCreativeFile', {
+        clientName,
+        subfolder,
+        fileName: file.name,
+        base64,
+        mimeType: file.type
+      });
+    } catch (e) {
+      showToast('Upload failed: ' + e.message, 'error');
+    }
+  }
+
+  // Refresh the section
+  await loadCreativeSection(clientName, subfolder, key);
+  showToast(files.length + ' file(s) uploaded', 'success');
+  event.target.value = ''; // reset input
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Remove data:image/...;base64, prefix
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function deleteCreativeFile(fileId, clientName, subfolder, key) {
+  if (!confirm('Delete this file?')) return;
+
+  const result = await writeToSheet('deleteCreativeFile', { fileId });
+  if (result.ok) {
+    showToast('File deleted', 'success');
+    await loadCreativeSection(clientName, subfolder, key);
+  } else {
+    showToast('Delete failed: ' + (result.error || 'Unknown error'), 'error');
+  }
+}
+
+async function createClientFolderAndRefresh(clientName) {
+  const btn = event.target.closest('button');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2"></div>Creating...';
+  }
+
+  const result = await writeToSheet('createClientFolder', { clientName });
+  if (result.ok) {
+    showToast('Folder created for ' + clientName, 'success');
+    await loadCreativeForgeContent(clientName);
+  } else {
+    showToast('Failed: ' + (result.error || 'Unknown error'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Folder'; }
+  }
+}
+
+async function saveCreativeForgeLocale(clientName) {
+  const input = document.getElementById('cf-locale-input');
+  if (!input) return;
+  const locale = input.value.trim();
+  _cfLocaleCache[clientName] = locale;
+
+  const result = await writeToSheet('saveClientLocale', { clientName, locale });
+  if (result.ok) {
+    showToast('Location saved', 'success');
+  } else {
+    showToast('Save failed: ' + (result.error || 'Unknown error'), 'error');
+  }
+}
+
 // V2 OVERRIDES
 var _origNav = typeof navigate !== 'undefined' ? navigate : function(){};
 navigate = function(view, param) {
