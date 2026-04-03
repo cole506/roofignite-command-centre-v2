@@ -475,7 +475,7 @@ function showAdDetailModal(adIndex) {
     return `<div id="trunc-${uid}">` +
       `<div style="font-size:13px;color:#cbd5e1;line-height:1.6;white-space:pre-wrap;">${escHtml(preview)}…</div>` +
       `<button onclick="event.stopPropagation();document.getElementById('trunc-${uid}').innerHTML='<div style=\\'font-size:13px;color:#cbd5e1;line-height:1.6;white-space:pre-wrap;\\'>${escHtml(text).replace(/'/g,'\\&#39;').replace(/\n/g,'\\n')}</div>'" ` +
-      `style="color:#f97316;font-size:11px;font-weight:600;background:none;border:none;cursor:pointer;padding:4px 0;margin-top:2px;">Show more</button>` +
+      `style="color:#d4a843;font-size:11px;font-weight:600;background:none;border:none;cursor:pointer;padding:4px 0;margin-top:2px;">Show more</button>` +
       `</div>`;
   }
 
@@ -531,7 +531,7 @@ function showAdDetailModal(adIndex) {
   if (copy.cta) {
     content += `<div style="margin-bottom:12px;">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:4px;">Call to Action</div>
-      <div style="display:inline-block;background:rgba(249,115,22,0.15);color:#fdba74;font-size:12px;font-weight:600;padding:4px 12px;border-radius:6px;">${escHtml(copy.cta)}</div>
+      <div style="display:inline-block;background:rgba(212,168,67,0.15);color:#fdba74;font-size:12px;font-weight:600;padding:4px 12px;border-radius:6px;">${escHtml(copy.cta)}</div>
     </div>`;
   }
 
@@ -1733,7 +1733,7 @@ function healthScoreColor(score) {
   if (score === null) return { bg: 'rgba(100,116,139,0.2)', text: '#94a3b8' };
   if (score >= 80) return { bg: 'rgba(34,197,94,0.2)', text: '#22c55e' };
   if (score >= 60) return { bg: 'rgba(234,179,8,0.2)', text: '#eab308' };
-  if (score >= 40) return { bg: 'rgba(249,115,22,0.2)', text: '#f97316' };
+  if (score >= 40) return { bg: 'rgba(212,168,67,0.2)', text: '#d4a843' };
   return { bg: 'rgba(239,68,68,0.2)', text: '#ef4444' };
 }
 
@@ -1742,7 +1742,7 @@ function healthScoreColor(score) {
 function fatigueScoreColor(score) {
   if (score === null || score === undefined) return { bg: 'rgba(100,116,139,0.2)', text: '#94a3b8' };
   if (score >= 80) return { bg: 'rgba(239,68,68,0.2)', text: '#ef4444' };
-  if (score >= 60) return { bg: 'rgba(249,115,22,0.2)', text: '#f97316' };
+  if (score >= 60) return { bg: 'rgba(212,168,67,0.2)', text: '#d4a843' };
   if (score >= 40) return { bg: 'rgba(234,179,8,0.2)', text: '#eab308' };
   return { bg: 'rgba(34,197,94,0.2)', text: '#22c55e' };
 }
@@ -3334,7 +3334,7 @@ async function renderCycleCompCards() {
     { key: 'bookings', label: 'Bookings', valA: aggA.bookings, valB: aggB.bookings, fmt: 'n', lower: false, color: '#22c55e' },
     { key: 'spend',    label: 'Spend',    valA: aggA.spend,    valB: aggB.spend,    fmt: '$', lower: null,  color: '#fbbf24' },
     { key: 'cpl',      label: 'CPL',      valA: aggA.cpl,      valB: aggB.cpl,      fmt: '$', lower: true,  color: '#a78bfa' },
-    { key: 'cpa',      label: 'CPA',      valA: aggA.cpa,      valB: aggB.cpa,      fmt: '$', lower: true,  color: '#f97316' },
+    { key: 'cpa',      label: 'CPA',      valA: aggA.cpa,      valB: aggB.cpa,      fmt: '$', lower: true,  color: '#d4a843' },
   ];
 
   const fmtV = (v, type) => {
@@ -3432,7 +3432,7 @@ function renderAccountCPAChart(cycles, goalCPA) {
     data: {
       labels,
       datasets: [
-        { label: 'CPA', data: cycles.map(c => c.cpa), borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.08)', fill: true, tension: 0.4, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#f97316', pointBorderColor: '#1e293b', pointBorderWidth: 2, borderWidth: 2.5 },
+        { label: 'CPA', data: cycles.map(c => c.cpa), borderColor: '#d4a843', backgroundColor: 'rgba(212,168,67,0.08)', fill: true, tension: 0.4, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#d4a843', pointBorderColor: '#1e293b', pointBorderWidth: 2, borderWidth: 2.5 },
         ...(goalCPA ? [{ label: 'Goal', data: cycles.map(() => goalCPA), borderColor: 'rgba(148,163,184,0.35)', borderDash: [6,4], pointRadius: 0, fill: false, borderWidth: 1.5 }] : [])
       ]
     },
@@ -6583,14 +6583,14 @@ function showWriteProgressModal_(action) {
   overlay.className = 'fixed inset-0 z-[999] flex items-center justify-center';
   overlay.style.cssText = 'background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);';
   overlay.innerHTML = `
-    <div class="glass rounded-2xl p-8 max-w-sm w-full mx-4 text-center scale-in" style="border:1px solid rgba(249,115,22,0.2);box-shadow:0 0 40px rgba(249,115,22,0.1);">
+    <div class="glass rounded-2xl p-8 max-w-sm w-full mx-4 text-center scale-in" style="border:1px solid rgba(212,168,67,0.2);box-shadow:0 0 40px rgba(212,168,67,0.1);">
       <div class="relative mx-auto mb-5" style="width:48px;height:48px;">
-        <div style="width:48px;height:48px;border:3px solid rgba(100,116,139,0.2);border-top-color:#f97316;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <div style="width:48px;height:48px;border:3px solid rgba(100,116,139,0.2);border-top-color:#d4a843;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
       </div>
       <p class="text-white text-sm font-semibold mb-1">${label}...</p>
       <p class="text-dark-400 text-xs">Syncing with Google Sheets — do not close this page</p>
       <div class="mt-4 w-full bg-dark-700/50 rounded-full h-1 overflow-hidden">
-        <div class="h-full rounded-full" style="background:linear-gradient(90deg,#f97316,#fb923c);animation:progressPulse 1.5s ease-in-out infinite;width:100%;"></div>
+        <div class="h-full rounded-full" style="background:linear-gradient(90deg,#d4a843,#e0bc5e);animation:progressPulse 1.5s ease-in-out infinite;width:100%;"></div>
       </div>
     </div>
   `;
@@ -6988,8 +6988,8 @@ function renderDontTouch() {
     // Case opening strip
     html += '<div class="glass rounded-2xl p-6 mb-6 overflow-hidden">';
     html += '<div class="relative" style="height:120px;">';
-    html += '<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:20;width:3px;height:120px;background:linear-gradient(to bottom,#f97316,#f97316 85%,transparent);"></div>';
-    html += '<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);z-index:21;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid #f97316;"></div>';
+    html += '<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:20;width:3px;height:120px;background:linear-gradient(to bottom,#d4a843,#d4a843 85%,transparent);"></div>';
+    html += '<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);z-index:21;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid #d4a843;"></div>';
     html += '<div id="dt-strip" style="display:flex;position:absolute;top:0;left:0;height:120px;transition:none;will-change:transform;"></div>';
     html += '</div></div>';
     // Spin button
@@ -7133,21 +7133,21 @@ function dtSpin() {
   // Fast ticks with sound
   let tickInterval = setInterval(() => {
     playTick(800 + Math.random() * 400, 0.06);
-    strip.parentElement.style.boxShadow = '0 0 20px rgba(249,115,22,0.3)';
+    strip.parentElement.style.boxShadow = '0 0 20px rgba(212,168,67,0.3)';
     setTimeout(() => { strip.parentElement.style.boxShadow = ''; }, 50);
   }, 80);
 
   // Slow down ticks
   setTimeout(() => { clearInterval(tickInterval); tickInterval = setInterval(() => {
     playTick(600 + Math.random() * 200, 0.1);
-    strip.parentElement.style.boxShadow = '0 0 30px rgba(249,115,22,0.4)';
+    strip.parentElement.style.boxShadow = '0 0 30px rgba(212,168,67,0.4)';
     setTimeout(() => { strip.parentElement.style.boxShadow = ''; }, 100);
   }, 200); }, 3000);
 
   // Even slower near the end
   setTimeout(() => { clearInterval(tickInterval); tickInterval = setInterval(() => {
     playTick(500, 0.12);
-    strip.parentElement.style.boxShadow = '0 0 35px rgba(249,115,22,0.5)';
+    strip.parentElement.style.boxShadow = '0 0 35px rgba(212,168,67,0.5)';
     setTimeout(() => { strip.parentElement.style.boxShadow = ''; }, 150);
   }, 400); }, 5000);
 
@@ -7155,7 +7155,7 @@ function dtSpin() {
   setTimeout(() => {
     clearInterval(tickInterval);
     playWinSound();
-    strip.parentElement.style.boxShadow = '0 0 40px rgba(249,115,22,0.6)';
+    strip.parentElement.style.boxShadow = '0 0 40px rgba(212,168,67,0.6)';
     setTimeout(() => { strip.parentElement.style.boxShadow = ''; }, 500);
 
     dtSpinLocked = true;
