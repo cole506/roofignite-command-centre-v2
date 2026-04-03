@@ -7439,7 +7439,7 @@ async function loadCreativeSection(clientName, subfolder, key) {
     <div class="relative group rounded-xl overflow-hidden border border-dark-600/30 hover:border-purple-500/30 transition-all" style="aspect-ratio:1;">
       <img src="${f.thumbnailUrl}" alt="${f.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 100\\'><rect fill=\\'%231e293b\\' width=\\'100\\' height=\\'100\\'/><text x=\\'50\\' y=\\'55\\' text-anchor=\\'middle\\' fill=\\'%2364748b\\' font-size=\\'12\\'>No preview</text></svg>'" />
       <button onclick="event.stopPropagation();deleteCreativeFile('${f.id}', '${esc(clientName)}', '${subfolder}', '${key}')" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;z-index:20;border:none;cursor:pointer;line-height:1;" title="Delete">×</button>
-      <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="event.stopPropagation();window.open('${f.viewUrl}','_blank')">
+      <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="event.stopPropagation();showImagePreview('${f.thumbnailUrl.replace('=w200','=w800')}', '${esc(f.name)}')">
         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
       </div>
       <div class="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-dark-200 truncate">${f.name}</div>
@@ -7556,7 +7556,9 @@ function showImagePreview(url, name) {
     </div>
   `;
 
-  document.body.appendChild(overlay);
+  // Append inside CF modal if open (same stacking context), otherwise body
+  const cfModal = document.getElementById('cf-modal');
+  (cfModal || document.body).appendChild(overlay);
 }
 
 // ═══════════════════════════════════════════════
