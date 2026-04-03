@@ -7543,11 +7543,12 @@ async function saveCreativeForgeLocale(clientName) {
 function showImagePreview(url, name) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);';
+  overlay.setAttribute('data-lightbox', 'true');
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 
   overlay.innerHTML = `
     <div class="relative max-w-4xl max-h-[90vh] mx-4">
-      <button onclick="this.closest('.fixed').remove()" class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-dark-700 border border-dark-600 text-white flex items-center justify-center hover:bg-dark-600 transition-all z-10">
+      <button onclick="this.closest('[data-lightbox]').remove()" class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-dark-700 border border-dark-600 text-white flex items-center justify-center hover:bg-dark-600 transition-all z-10">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
       <img src="${url}" alt="${name}" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl" />
