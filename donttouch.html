@@ -27,7 +27,7 @@ tailwind.config = {
 <body class="min-h-screen">
 
 <!-- Login Gate -->
-<div id="login-gate" class="fixed inset-0 z-[999] flex items-center justify-center" style="background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%);">
+<div id="login-gate" class="fixed inset-0 z-[999] hidden flex items-center justify-center" style="background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%);">
   <div class="text-center max-w-full sm:max-w-md mx-auto px-4 sm:px-6">
     <div class="mb-8">
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20">
@@ -46,7 +46,7 @@ tailwind.config = {
   </div>
 </div>
 
-<div id="app" class="flex min-h-screen hidden">
+<div id="app" class="flex min-h-screen">
   <!-- Mobile Header -->
   <div class="mobile-header fixed top-0 left-0 right-0 z-[150] items-center justify-between px-3 py-2 border-b border-dark-600/30" style="background:rgba(6,11,24,0.95);backdrop-filter:blur(12px);display:none;">
     <button onclick="toggleSidebar()" class="p-2 rounded-lg text-dark-200 hover:text-white hover:bg-dark-700/50 transition-all flex-shrink-0">
