@@ -7277,9 +7277,9 @@ let _cfModalClient = null;
 let _cfLocaleCache = {};
 
 const CF_SECTIONS = [
-  { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References', hint: 'Photos of company representatives' },
-  { key: 'logos', label: 'Approved Logos', subfolder: 'Approved AI References', hint: 'Company logo files' },
-  { key: 'vehicles', label: 'Approved Vehicles', subfolder: 'Approved AI References', hint: 'Company truck/vehicle photos' },
+  { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References/Reps', hint: 'Photos of company representatives' },
+  { key: 'logos', label: 'Approved Logos', subfolder: 'Approved AI References/Logos', hint: 'Company logo files' },
+  { key: 'vehicles', label: 'Approved Vehicles', subfolder: 'Approved AI References/Vehicles', hint: 'Company truck/vehicle photos' },
   { key: 'topPerformers', label: 'Top Performers', subfolder: 'Top Performers', hint: 'Best-performing ad creatives', noUpload: true },
 ];
 
