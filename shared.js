@@ -6503,9 +6503,9 @@ async function executeAddCycle(accountName) {
   acct.cycles.push(newCycle);
 
   // Re-render whatever view we're on without breaking it
-  if (currentView === 'account') {
+  if (document.getElementById('view-account')) {
     renderAccountDetail(accountName);
-  } else {
+  } else if (document.getElementById('view-admin')) {
     renderAdminView();
   }
 
@@ -7234,4 +7234,22 @@ checkExistingSession = function() {
   var lg = document.getElementById('login-gate'); if(lg) lg.classList.add('hidden');
   var ap = document.getElementById('app'); if(ap) ap.classList.remove('hidden');
   return true;
+};
+
+// Safe render wrappers — only render if the view container exists on the page
+var _origRenderAdmin = renderAdminView;
+renderAdminView = function() {
+  if (document.getElementById('view-admin')) _origRenderAdmin();
+};
+var _origRenderDashboard = renderDashboard;
+renderDashboard = function() {
+  if (document.getElementById('view-dashboard')) _origRenderDashboard();
+};
+var _origRenderBilling = renderBilling;
+renderBilling = function() {
+  if (document.getElementById('view-billing')) _origRenderBilling();
+};
+var _origRenderDontTouch = renderDontTouch;
+renderDontTouch = function() {
+  if (document.getElementById('view-donttouch')) _origRenderDontTouch();
 };
