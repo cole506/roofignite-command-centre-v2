@@ -6318,8 +6318,10 @@ async function quickEditCycle(accountName, cycleName) {
   if (c.dailyBudget !== undefined) acct.dailyBudget = c.dailyBudget;
   if (c.monthlyBudget !== undefined) acct.monthlyBudget = c.monthlyBudget;
 
-  // Re-render to show changes
-  navigate('account', { name: accountName, adAccountId: acct.adAccountId });
+  // Re-render to show changes (don't navigate — that reloads the page and loses local edits)
+  if (document.getElementById('view-account')) {
+    renderAccountDetail(accountName, acct.adAccountId);
+  }
 
   if (APPS_SCRIPT_URL) {
     const result = await writeToSheet('updateCycle', {
@@ -6347,7 +6349,9 @@ async function saveCpcSettings(accountName, cycleName) {
   const multVal = document.getElementById('qe-cpc-mult')?.value;
   c.cpcMultiplier = multVal !== '' ? parseFloat(multVal) || null : null;
 
-  navigate('account', { name: accountName, adAccountId: acct.adAccountId });
+  if (document.getElementById('view-account')) {
+    renderAccountDetail(accountName, acct.adAccountId);
+  }
 
   if (APPS_SCRIPT_URL) {
     const result = await writeToSheet('updateCycle', {
@@ -6379,7 +6383,9 @@ async function saveGregGoal(accountName, cycleName) {
   c.gregGoal = parseFloat(val) || null;
   acct.gregGoal = c.gregGoal;
 
-  navigate('account', { name: accountName, adAccountId: acct.adAccountId });
+  if (document.getElementById('view-account')) {
+    renderAccountDetail(accountName, acct.adAccountId);
+  }
 
   if (APPS_SCRIPT_URL) {
     const result = await writeToSheet('updateCycle', {
