@@ -7348,21 +7348,24 @@ async function loadCreativeForgeContent(clientName) {
   const body = document.getElementById('cf-modal-body');
   if (!body) return;
 
-  // Ensure client folder + all subfolders (including Reps/Logos/Vehicles) exist
-  const ensureResult = await writeToSheet('createClientFolder', { clientName }, { silent: true });
-
-  if (!ensureResult.ok) {
-    body.innerHTML = `
-      <div class="text-center py-12">
-        <svg class="w-12 h-12 text-dark-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-        <p class="text-dark-300 text-lg font-semibold mb-2">Could not set up folders for "${clientName}"</p>
-        <p class="text-dark-500 text-sm mb-6">${ensureResult.error || 'Unknown error'}</p>
-        <button onclick="loadCreativeForgeContent('${esc(clientName)}')" class="px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/20 transition-all">
-          Retry
-        </button>
-      </div>
-    `;
-    return;
+  // Check if folder exists first, only create if needed
+  const checkResult = await writeToSheet('checkClientFolder', { clientName }, { silent: true });
+  if (checkResult.ok && !checkResult.exists) {
+    // Folder doesn't exist - create it
+    const ensureResult = await writeToSheet('createClientFolder', { clientName }, { silent: true });
+    if (!ensureResult.ok) {
+      body.innerHTML = `
+        <div class="text-center py-12">
+          <svg class="w-12 h-12 text-dark-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <p class="text-dark-300 text-lg font-semibold mb-2">Could not set up folders for "${clientName}"</p>
+          <p class="text-dark-500 text-sm mb-6">${ensureResult.error || 'Unknown error'}</p>
+          <button onclick="loadCreativeForgeContent('${esc(clientName)}')" class="px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/20 transition-all">
+            Retry
+          </button>
+        </div>
+      `;
+      return;
+    }
   }
 
   // Load locale from cache or fetch from sheet
