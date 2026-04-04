@@ -7421,7 +7421,7 @@ async function loadCreativeForgeContent(clientName) {
         Generate Creatives
       </h3>
       <p class="text-xs text-dark-500 mb-4">Add a generation job to the queue</p>
-      <div class="grid grid-cols-3 gap-3 mb-3">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         <div>
           <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Image Count</label>
           <input type="number" id="cf-gen-count" value="12" min="1" max="30" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500" />
@@ -7441,6 +7441,16 @@ async function loadCreativeForgeContent(clientName) {
             <option value="property">Property only</option>
             <option value="crew">Crew only</option>
             <option value="mixed">Mixed (all types)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Season</label>
+          <select id="cf-gen-season" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500">
+            <option value="auto">Auto (current)</option>
+            <option value="spring">Spring</option>
+            <option value="summer">Summer</option>
+            <option value="fall">Fall</option>
+            <option value="winter">Winter</option>
           </select>
         </div>
       </div>
@@ -7596,6 +7606,7 @@ async function submitCreativeForgeJob(clientName) {
   const count = parseInt(document.getElementById('cf-gen-count')?.value) || 12;
   const priority = document.getElementById('cf-gen-priority')?.value || 'normal';
   const scene = document.getElementById('cf-gen-scene')?.value || 'auto';
+  const season = document.getElementById('cf-gen-season')?.value || 'auto';
   const notes = document.getElementById('cf-gen-notes')?.value || '';
 
   // Find the account's manager
@@ -7614,13 +7625,14 @@ async function submitCreativeForgeJob(clientName) {
     requestedBy,
     imageCount: count,
     sceneOverride: scene,
+    season,
     priority,
     notes,
     manager,
   });
 
   if (result.ok) {
-    showToast(`Queued: ${count} images for ${clientName} (${priority})`, 'success');
+    showToast(`Queued: ${count} images for ${clientName} (${priority}${season !== 'auto' ? ', ' + season : ''})`, 'success');
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Add to Queue'; }
     loadCreativeQueueStatus(clientName);
   } else {
