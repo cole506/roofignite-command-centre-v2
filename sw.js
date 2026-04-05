@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roofignite-v2-cache-v2';
+const CACHE_NAME = 'roofignite-v2-cache-v3';
 const PRECACHE_URLS = [
   'dashboard.html',
   'account.html',
@@ -6,9 +6,9 @@ const PRECACHE_URLS = [
   'admin.html',
   'donttouch.html',
   'shared.min.js',
-  'shared.css',
-  'tailwind.built.css',
+  'styles.min.css',
   'config.js',
+  'logo.png',
 ];
 
 // Install: precache all pages and assets

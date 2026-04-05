@@ -1262,7 +1262,7 @@ function getDate(row, idx) {
 }
 
 const DATA_CACHE_KEY = 'roofignite_data_cache';
-const DATA_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const DATA_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 function saveDataCache() {
   try {
