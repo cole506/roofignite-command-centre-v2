@@ -6649,7 +6649,7 @@ const WRITE_ACTION_LABELS = {
   deletePod:            'Deleting pod',
 };
 // Read-only actions that should NOT show the blocking modal
-const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale', 'checkClientFolder', 'getCreativeQueue'];
+const READ_ONLY_ACTIONS = ['getSheetList', 'getSlackConfig', 'getSlackNotifyToggles', 'getPodRegistry', 'listCreativeFiles', 'getClientLocale', 'checkClientFolder', 'getCreativeQueue', 'getMetaToken'];
 
 function showWriteProgressModal_(action) {
   const label = WRITE_ACTION_LABELS[action] || 'Saving changes';
