@@ -8186,48 +8186,4 @@ renderSidebarPods = function() {
   }
 };
 
-// 3. Collapsible sidebar toggle
-var sidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
-
-function toggleSidebarCollapse() {
-  sidebarCollapsed = !sidebarCollapsed;
-  localStorage.setItem('sidebar_collapsed', sidebarCollapsed);
-  applySidebarState();
-}
-
-function applySidebarState() {
-  const sidebar = document.querySelector('.sidebar');
-  const main = document.querySelector('.main-content');
-  const collapseBtn = document.getElementById('sidebar-collapse-btn');
-  if (!sidebar || !main) return;
-
-  if (sidebarCollapsed) {
-    sidebar.style.transform = 'translateX(-100%)';
-    main.style.marginLeft = '0';
-    if (collapseBtn) collapseBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>';
-  } else {
-    sidebar.style.transform = 'translateX(0)';
-    main.style.marginLeft = '';
-    if (collapseBtn) collapseBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M19 19l-7-7 7-7"/></svg>';
-  }
-}
-
-// Inject collapse button into sidebar and apply saved state on load
-document.addEventListener('DOMContentLoaded', function() {
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar) {
-    sidebar.style.transition = 'transform 0.25s ease';
-    const main = document.querySelector('.main-content');
-    if (main) main.style.transition = 'margin-left 0.25s ease';
-
-    // Add collapse button at top of sidebar
-    const btn = document.createElement('button');
-    btn.id = 'sidebar-collapse-btn';
-    btn.className = 'absolute top-4 right-[-36px] z-[201] w-8 h-8 rounded-r-lg bg-dark-800 border border-dark-600/50 border-l-0 flex items-center justify-center text-dark-400 hover:text-white transition-colors';
-    btn.onclick = toggleSidebarCollapse;
-    sidebar.style.position = 'fixed';
-    sidebar.appendChild(btn);
-
-    applySidebarState();
-  }
-});
+// Sidebar collapse removed — sidebar is always visible on desktop
