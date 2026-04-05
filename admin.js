@@ -247,7 +247,7 @@ function renderAdminView() {
           Clients
         </span>
       </button>
-      <button onclick="adminTab='settings';loadSlackConfig().then(()=>renderAdminView())" class="px-5 py-2 rounded-xl text-xs font-semibold transition-all ${adminTab === 'settings' ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' : 'bg-transparent text-dark-400 border border-transparent hover:text-white'}">
+      <button onclick="adminTab='settings';Promise.all([loadSlackConfig(),loadCreativeForgeAutoConfig()]).then(()=>renderAdminView())" class="px-5 py-2 rounded-xl text-xs font-semibold transition-all ${adminTab === 'settings' ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' : 'bg-transparent text-dark-400 border border-transparent hover:text-white'}">
         <span class="flex items-center gap-2">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
           Settings
@@ -588,6 +588,45 @@ function renderSettingsTab(managers) {
       <p class="text-[10px] text-dark-500 mt-3">When disabled, the script will skip Slack messages for that manager. Default is <span class="text-green-400">enabled</span> for all.</p>
     </div>
 
+    <!-- Creative Forge Auto-Restock -->
+    <div class="glass rounded-2xl p-6 mb-6">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-600/20 border border-purple-500/20 flex items-center justify-center text-sm">🔄</span>
+        <div>
+          <h3 class="text-base font-bold text-white">Creative Forge Auto-Restock</h3>
+          <p class="text-dark-400 text-xs mt-0.5">Automatically queue creative generation for all active clients on a weekly schedule. Requires a time-driven trigger in Apps Script.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 mt-4">
+        <div class="flex items-center gap-4">
+          <label class="text-sm text-dark-300 min-w-[100px]">Enabled</label>
+          <button id="cf-auto-toggle"
+            onclick="toggleCreativeForgeAuto()"
+            class="relative w-12 h-6 rounded-full transition-colors duration-200 ${window._cfAutoEnabled ? 'bg-green-500' : 'bg-dark-600'} cursor-pointer">
+            <span class="absolute top-0.5 ${window._cfAutoEnabled ? 'left-6' : 'left-0.5'} w-5 h-5 bg-white rounded-full shadow transition-all duration-200"></span>
+          </button>
+          <span id="cf-auto-status" class="text-xs font-medium ${window._cfAutoEnabled ? 'text-green-400' : 'text-dark-500'}">${window._cfAutoEnabled ? 'On' : 'Off'}</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <label class="text-sm text-dark-300 min-w-[100px]">Batch Size</label>
+          <input id="cf-auto-batch" type="number" min="1" max="50" value="${window._cfAutoBatchSize || 20}"
+            class="w-24 bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-brand-500" />
+          <button onclick="saveCreativeForgeAutoConfig()"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30 transition-all">Save</button>
+        </div>
+
+        <div class="flex items-center gap-3 mt-2">
+          <button onclick="runWeeklyRestock()"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-all">Run Now (Manual Trigger)</button>
+          <span id="cf-restock-status" class="text-xs text-dark-400"></span>
+        </div>
+      </div>
+
+      <p class="text-[10px] text-dark-500 mt-3">Jobs are queued with <span class="text-purple-400">auto</span> priority (processed after all manual Rush and Standard jobs). Set up a weekly time-driven trigger on <code class="text-dark-400">scheduleWeeklyCreatives</code> in Apps Script.</p>
+    </div>
+
     <!-- Manual Run -->
     <div class="glass rounded-2xl p-6 mb-6">
       <div class="flex items-center gap-3 mb-2">
@@ -743,6 +782,75 @@ async function runScript(scriptName, manager) {
     showToast(`${scriptName} report sent for ${manager}`, 'success');
   } else {
     showToast(`Failed to run ${scriptName}: ${result.error || 'unknown error'}`, 'error');
+  }
+}
+
+// ═══ Creative Forge Auto-Restock Helpers ═══
+
+window._cfAutoEnabled = false;
+window._cfAutoBatchSize = 20;
+
+async function loadCreativeForgeAutoConfig() {
+  if (!APPS_SCRIPT_URL) return;
+  try {
+    const result = await writeToSheet('getCreativeForgeAutoConfig', {});
+    if (result.ok) {
+      window._cfAutoEnabled = !!result.enabled;
+      window._cfAutoBatchSize = result.batchSize || 20;
+    }
+  } catch (e) {
+    console.error('Failed to load Creative Forge auto config:', e);
+  }
+}
+
+async function toggleCreativeForgeAuto() {
+  if (!APPS_SCRIPT_URL) { showToast('Connect Apps Script first', 'error'); return; }
+  window._cfAutoEnabled = !window._cfAutoEnabled;
+  const batch = parseInt(document.getElementById('cf-auto-batch')?.value) || window._cfAutoBatchSize;
+  const result = await writeToSheet('saveCreativeForgeAutoConfig', { enabled: window._cfAutoEnabled, batchSize: batch });
+  if (result.ok) {
+    showToast(`Auto-restock ${window._cfAutoEnabled ? 'enabled' : 'disabled'}`, 'success');
+    renderAdminView();
+  } else {
+    window._cfAutoEnabled = !window._cfAutoEnabled;
+    showToast('Failed to save config', 'error');
+  }
+}
+
+async function saveCreativeForgeAutoConfig() {
+  if (!APPS_SCRIPT_URL) { showToast('Connect Apps Script first', 'error'); return; }
+  const batch = parseInt(document.getElementById('cf-auto-batch')?.value) || 20;
+  window._cfAutoBatchSize = batch;
+  const result = await writeToSheet('saveCreativeForgeAutoConfig', { enabled: window._cfAutoEnabled, batchSize: batch });
+  if (result.ok) {
+    showToast(`Batch size saved: ${batch} images`, 'success');
+  } else {
+    showToast('Failed to save config', 'error');
+  }
+}
+
+async function runWeeklyRestock() {
+  if (!APPS_SCRIPT_URL) { showToast('Connect Apps Script first', 'error'); return; }
+  const statusEl = document.getElementById('cf-restock-status');
+  if (statusEl) statusEl.textContent = 'Queuing clients...';
+  showToast('Running weekly restock...', 'success');
+  try {
+    const result = await writeToSheet('scheduleWeeklyCreatives', {});
+    if (result.ok) {
+      if (result.skipped) {
+        showToast(result.reason || 'Auto-restock is disabled', 'error');
+        if (statusEl) statusEl.textContent = result.reason || 'Disabled';
+      } else {
+        showToast(`Queued ${result.queued} client(s)`, 'success');
+        if (statusEl) statusEl.textContent = `✅ ${result.queued} client(s) queued`;
+      }
+    } else {
+      showToast('Failed: ' + (result.error || 'unknown'), 'error');
+      if (statusEl) statusEl.textContent = '❌ ' + (result.error || 'Failed');
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+    if (statusEl) statusEl.textContent = '❌ ' + e.message;
   }
 }
 
