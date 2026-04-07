@@ -1262,7 +1262,7 @@ function getDate(row, idx) {
 }
 
 const DATA_CACHE_KEY = 'roofignite_data_cache';
-const DATA_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const DATA_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 function saveDataCache() {
   try {
@@ -2673,7 +2673,7 @@ function renderAccountDetail(name, adAccountId) {
   el.innerHTML = `
     <div class="mb-5 md:mb-8 fade-in">
       <div class="flex items-center justify-between gap-2">
-        <button onclick="history.length > 1 ? history.back() : window.location='dashboard.html'" class="back-btn mb-4 flex-shrink-0">
+        <button onclick="navigate(currentManager ? 'manager' : currentPod ? 'pod' : 'dashboard', currentManager || currentPod)" class="back-btn mb-4 flex-shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back
         </button>
         <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAacAAACBCAYAAABkbXUHAAAACXBIWXMAABCbAAAQmwF0iZxLAAAOhklEQVR4nO3dTYhkWVqH8admSsfS0Uo/IEDEjMYGN2olzFIhoxFcCZWNuHQqR0TEWHQ2uBQqGmbhaqpqEbPtqIUMomAVrlxVJO5E6Ew/Fq6MXLgIadtMQdtxdHIWbwT5UZGdkRHv/Yh7nx8E2R1ZcfLkvXnv/55zzz3n3vn5OcAY2EXXnQAT4OjS13F11bmznWuvLeBRpTUq1+Hs65iL/XdUVWVWtEXsux7Qnb12gIeV1ahc82Nw/hoT+/C0qgrdUZfYd3vEftuusjIb5L17htNKXgOvZq+6HSR7l15tOYHdxQnx9z7ff3XUJfbfPu26mLiLY2BE7MNJpTVZrAccAI8rrsemMpwSvAQGVHuAdIkT2QEG0l2cECe459TjIqNH/C15LN7NIbHdxtVWA4jW0XPch+t670tV16ABngD/Qpzktkr+2VvEQXkEPMVguqttYrtNiGCvyg5xYn2DJ7VV7BLbbkxsy6oMgE9wH6YwnPI8IU5yeyX9vB0MpSwPgWfE9iz75DbAE1qWXWJbDkr+uVtEMD4t+ec2muGU6yHwl0Szvkj7xEHozdVcj4iTTK+En+UJrThPiW1bRk/GfD96cZHMcCrGB0Q3XxH2gY8LKltxgfGGYlvAntCKt0vxATXfjw5aKYDhVJwn5Hcv7GEwlWVEcV18r/CEVoZHFHeRCNFD4n4siOFUrKfkdRF1KfZA01UPiRDJvvIeYIupTI8p5h7UHnEBqoIYTsUbJZbjwIdybZN7YuviPaYqPCW2fZYtvFAsnOFUvG3iPtE6eni1XZUPyDuxFT1QRjcbJJbl84QlMJzKMVjz81U+g6Oc7d/F2QKq9ISci4wtPB5LYTiVY5vV7z1t4UmtavsJZXhCq17GCEynBSuJ4VSeVQ+Msh7q1c0esv7AlnU/r/XtJ5Th8VgSw6k8vZI/p1y9NT7bttng6+oR64++tBejJPeTyztm87svelzMCp3ZfF/15FTEszavuVg+og4Tnma5vLxE9gCS3hqfLWIfnnAxI/emLQNymx0ujsHsWVDm8xiuopdXDQDOuJhZXVcdZYfTKfWYGXgd49nX+Y3PzKG/Pe6+fTKvuF8TXRtNCqTr5gd6l9yHXbtrfLaXVAeIE9oBzR7KPJ59PSD+Xp+Td6G4Tjh1k+oAsR97NO/CIo3dejc7JUbZvaiwDpkPgB4SV6JNDqbLJsTBf5JUXl3mMdyj2cF03Yjc3ph1jqluViWI0DWYvoDhdLtRYll3PTAyu4Pa+IzNKfU4kXeTypkvlNg2I6Kl0SR25d3CcLpd5tVNlWvNtKXFdF0drk67SeVMksrZRFn7scpjcO6w6gpsAsNJTdfWUNZiZS8IqhUZTpKk2jGcJEm1YzhJkmrHcJIk1Y7hJEmqHcNJklQ7hpMkqXYMJ0lS7RhOt8t8onycWJYkNZbhdLtB1RWQpLYxnG7WJSZnzFxczKl0JGkJ2es5ddn8lsYWsdRCESuX1mESUknVWmdNqabqXX8jO5y2yV2cr0mciVgSxMKJ2Ss1N47deuVx/RZJWpLhVB7DSZKWZDiV45B2LxQnSXdiOJVjUHUFJGmTGE7FO8SROZJ0J4ZTsc6A/aorIUmbxnAq1gHea5KkOzOcivMCGFVdCUnaRIZTMV4QrSZJ0gqyZ4houzMilEYV10OSNpotpzwviTmzRhXXQ5I2ni2n9ZwRMz8McOCDJKUxnO7uhHhuaUwEk8tgSFIyw2l5J8S07pNqqyFpw53h8jm3yg6nQxasy1GhI/LWZdom7ilNksqT1E5H1Os8WUtNHxCRPZz7ObEYoSSpQE0PpzHwOrG8bXx+SZIK1/RwgvwwOSCWo5ckFaQN4TQBPkos7yEugSFJhWpDOEHcKzpLLO8J3tCUpMK0JZxOye/eGySXJ0maaUs4QUwrdJxY3i6u1SRJhWhTOEExrSeHlktSsraF0xiHlktS7bUtnCDCJHNwhEPL682WrS5zLswN0cZwmhCj97JsytDybtUVqEiv6gqQN4/aTlI5m2g3qRzntNsQbQwniHA6SSyvqKHlmQfSgPa1Iraox6CVrKv1h7SzG7mNv3PrtTWcTslv7WS2xuYyuyC2iXtuvcQy66xHhPvDpPLWGemZuR+f0Z4LjS3id32WWKbdehuizUtmjIir6qzugkez8kZJ5c0dkzez+iPgDdFqPKKZXRw7s9d2crmTNT6bvZ2fzl6Hs7KbdsLdIvZh1rF5WRP/5hupzeEEcVX2JrG85+QvQJi57Mfc9uz1OLncJhuv8dmiToi7FHMCb7Jx1RXQctrarTc3Bl4mllfEPYFXyeVpNeM1PntK7gPgWs1h1RXQ8toeThCtp8yh5U/JHRk3TixLq5l3g65jlFAPrccLvQ1iOOUPLSe5vFNyW3e6u1FNytB6RlVXQMsznEL20PLH5I6KGySWpbs5I+diw4uMar2keQNHGs1wCkXMWp7ZepoALxLL0/Kek3dSy56dRMs5w2elNo7hdOEVuTdM50PLswzIbd3pdsfktlqLuAjS7fax1bRxDKerimg9ZT0seQrs4ZV3Wc4o5oHlEXbvleklDoTYSIbTVUfUe2j5EXHCNKCKNQ+moq629zGgyvCSekxfpRUYTm/Lvi+QPbTcgCrWMRdTHxVpHwOqSC8wmDaa4fS2U/KHlo+SyzsiAs+HCnO9ppxgmtsH3scLjUxnxDb13t6GM5wWG5A7+GCX/PsXp7Myv4EDJdZ1DLxH3NMr+8b5K+JCw1bU+l4S29J7TA1gON0s+8prlFze5XK7REg5Rc7dvCausneodiaOU6IV9Q7RHWVLanlnxDZ7B0flNYrhdLPsoeVFL+k+Ik6y7wAfYpffTV4T2+cdoqVUp6vsCfE3skWE5ktsFS9yQmyb94ltdcB6s8arhu6dn59DXDVmzG58SLPWC9oBPkks74zy1+HpEb/HFlf3TVNnsz7j4p7R6ey/J2z2EiHd2avHxXIS8/ezlwapi2MuWkHzZUHGxL6cVFKj6O5/mlBO086ThZiHkyRJtWG3niSpdgwnSVLtGE6SpNoxnCRJtWM4SZJqx3CSJNWO4SRJqh3DSZJUO4aTJKl2DCdJUu0YTpKk2jGcJEm1YzhJkmrHcJKqMO3vMO3v3P4PpXYynKSyTfu/QqzpU/baXtLGMJyk8n0b+D/gq1VXRKorw0kq07T/e8CvAj8F/HLFtZFqy3CSyrUPfAZ8DvxitVWR6stwksoy7XeBrwH3iHDqVVkdqc4MJ6k8v0EE0wPgR4Efd8SetJjhJJXnl4CvEAF1jwioP660RlJNGU5Seb4KfEoE1Dykfotpv1dlpaQ6Mpyk8vws8DNcDIgA+C7wV3bvSVfdOz8/r7oOUrNN+38I/Dfw68BvE62mz4h7T/MLxO8C23SGp5XUUaqZ+1VXQGq0aX8L+Cbwb8A/EQ/fQjznNA+oe7P3/gaffZIAu/Wkon0T+EmgC/wa8H2iFfU/REB9Pvv/7wE/x7T/J9VUU6oXw0kq1u8QLaSvAD8BnBM9Ft8D/oMIKLhoPX297ApKdeQ9pyaKm+vPr717QGd4tGa5XWAP2CFaAlmO6AwPVvrktP98Vp+LsmCQeu/m7e05ojMcLfG53wQ+JgZBfAr8GBFC/wn8K/ALwP8TLavPZ68vAbt0hn9/h/oUabV9M+2P86sCrPO3oo3iPadm2gJ2F7y3mrhvMgA+WL1Khdnh6u+6C/SY9vfXDuML17fneMnPvUsE0+eXvp4DU2Iao0Pgy0TLat6C+i/g54Gbw2nx/q2butdPNWe3npYxop7BdJNHwJhpf7/ierxLBNKDS18BvjNrGf07EU5fJlpWD3Cmcgmw5aTbRBfS4wXfOQEmST8lq4Vz2UPg49kDrgcVDdH+O+Abs/9+QAx8+D7wndl7/wz8NHGR+ENEC+pHgH+8pdxTotW1rB1ie8ydsfw2z9o3x0S911XE34pqyHDSbRZ1B75PZ/iq9Jqs5gmwk9zNt6wxMUXRvNV0D/gDOsPJ7Psd4M+JQRD/O3vvHy59f7H4PXpL1yLu/1zuZjuiM1z+8zkO6AzHJf9MbTC79XR39Q6m4wXvVdPNFyHzkgimz4BP6Qz/9NK/+CM6w98nRvL9MHE8Piu1jlJNGU5qmgOiK+3s2vvzbr7RbIBHmfU5JgY8/O2V71y0JD4jBkr8BZ3hn5VYN6m2DCc1Twzz7rG4FfWEaEWVM5dd3Oua1+Xdt74fw/MfAH9NZ/i7pdRJ2gD3nRG5lia33nfQF4v7Mjuz56CujzScd/MdLPW80vp1OZ0dZwOm/Q+BTy599+tE9963C69HtXaY9tct4zTlvmG0nJ1ot36unPfuA2+qq4tu8BHxXJHW1RkezAYEjLg6Ym3ezbcH7Bc+mi/Kn9flW5e+81ELggly7qUdkrN68A6e9+roynnPbj2Vb9rvMe2fX3v1Cvt5MYCjy+Lh14+BI5eskOrFcFI7dIans+HTHy347jbwCdO+0+JINeFzTmqXznBwqZtv+9p3n81acMV387XPh6z/AK37pEXus/hKUtUaV12BRusM56P1Rrw9+8W8m2+vgod2m+yoRg/hTvC8V0fjy/9zn85wUE09pApFy2hv1pU34OpgiXk334d0hmXN/q2yxIiwQcW10C2856R2i/DpsfiZqGdM+69YZ0Z3SSsxnKSLuepeLPjuY6L7T1KJDCfdXbnT/5QjRvMdAO+zeOojSSVytJ5WMZ7NvDBZ4bNdFvf3r1JWvs7w1WywxCtiJgnlyJghArJmiVDtGU76YjGy7YyrrYdHxPLjWQ5rNV1T1GWHaX8APK22Mo2RNdt61iwRqjm79bSMHm93dWU5I2burp8Yyfoexf3ukm5gOOl280lUY22irBP1CfGsSbfW3TTxbE4XeF1tRaR2sVuvmY6IK/7r760uurr2gfkyD901SjtKnIHhgKtDvfOD7uKZqN7snckapV2v7zplrfozy5hp4frfXxZniWiJHwDICgKYDHSW3gAAAABJRU5ErkJggg==" alt="RoofIgnite" class="h-8 w-auto opacity-40 mobile-hide" />
@@ -7049,9 +7049,14 @@ function renderDontTouch() {
       html += '<div class="text-4xl font-black text-yellow-300 mb-2">15 Minute Break!</div>';
       html += '<div class="text-dark-400 text-sm">You earned it. Step away, grab coffee, touch grass.</div>';
     } else {
+      var acctObj = allAccounts.find(function(a) { return a.name === dtCurrentAccount; });
+      var acctLink = 'account.html?name=' + encodeURIComponent(dtCurrentAccount) + '&adAccountId=' + encodeURIComponent((acctObj && acctObj.adAccountId) || '');
       html += '<div class="text-orange-400 text-xs uppercase tracking-widest font-bold mb-3">YOUR MISSION</div>';
       html += '<div class="text-4xl font-black text-white mb-2">' + dtCurrentAccount + '</div>';
-      html += '<div class="text-dark-400 text-sm">Focus on this account. Click "I\'m Done" when you\'re finished.</div>';
+      html += '<div class="text-dark-400 text-sm mb-5">Focus on this account. Click "I\'m Done" when you\'re finished.</div>';
+      html += '<a href="' + acctLink + '" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand-500/20 border border-brand-500/30 text-brand-400 hover:bg-brand-500/30 transition-all">';
+      html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>';
+      html += 'Go to Account</a>';
     }
     html += '</div>';
     html += '<div class="text-center mb-8">';
@@ -7247,10 +7252,15 @@ function dtSpin() {
         '<div class="text-4xl font-black text-yellow-300 mb-2">15 Minute Break!</div>' +
         '<div class="text-dark-400 text-sm">You earned it. Step away, grab coffee, touch grass.</div>';
     } else {
+      var acctObj = allAccounts.find(function(a) { return a.name === winnerName; });
+      var acctLink = 'account.html?name=' + encodeURIComponent(winnerName) + '&adAccountId=' + encodeURIComponent((acctObj && acctObj.adAccountId) || '');
       document.getElementById('dt-result-header').innerHTML =
         '<div class="text-orange-400 text-xs uppercase tracking-widest font-bold mb-3">YOUR MISSION</div>' +
         '<div class="text-4xl font-black text-white mb-2">' + winnerName + '</div>' +
-        '<div class="text-dark-400 text-sm">Focus on this account. Click "I\'m Done" when you\'re finished.</div>';
+        '<div class="text-dark-400 text-sm mb-5">Focus on this account. Click "I\'m Done" when you\'re finished.</div>' +
+        '<a href="' + acctLink + '" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand-500/20 border border-brand-500/30 text-brand-400 hover:bg-brand-500/30 transition-all">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>' +
+        'Go to Account</a>';
     }
     document.getElementById('dt-done-area').style.display = 'block';
 
@@ -8186,4 +8196,48 @@ renderSidebarPods = function() {
   }
 };
 
-// Sidebar collapse removed — sidebar is always visible on desktop
+// 3. Collapsible sidebar toggle
+var sidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+
+function toggleSidebarCollapse() {
+  sidebarCollapsed = !sidebarCollapsed;
+  localStorage.setItem('sidebar_collapsed', sidebarCollapsed);
+  applySidebarState();
+}
+
+function applySidebarState() {
+  const sidebar = document.querySelector('.sidebar');
+  const main = document.querySelector('.main-content');
+  const collapseBtn = document.getElementById('sidebar-collapse-btn');
+  if (!sidebar || !main) return;
+
+  if (sidebarCollapsed) {
+    sidebar.style.transform = 'translateX(-100%)';
+    main.style.marginLeft = '0';
+    if (collapseBtn) collapseBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>';
+  } else {
+    sidebar.style.transform = 'translateX(0)';
+    main.style.marginLeft = '';
+    if (collapseBtn) collapseBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M19 19l-7-7 7-7"/></svg>';
+  }
+}
+
+// Inject collapse button into sidebar and apply saved state on load
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    sidebar.style.transition = 'transform 0.25s ease';
+    const main = document.querySelector('.main-content');
+    if (main) main.style.transition = 'margin-left 0.25s ease';
+
+    // Add collapse button at top of sidebar
+    const btn = document.createElement('button');
+    btn.id = 'sidebar-collapse-btn';
+    btn.className = 'absolute top-4 right-[-36px] z-[201] w-8 h-8 rounded-r-lg bg-dark-800 border border-dark-600/50 border-l-0 flex items-center justify-center text-dark-400 hover:text-white transition-colors';
+    btn.onclick = toggleSidebarCollapse;
+    sidebar.style.position = 'fixed';
+    sidebar.appendChild(btn);
+
+    applySidebarState();
+  }
+});

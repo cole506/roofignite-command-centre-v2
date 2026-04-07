@@ -48,9 +48,14 @@ function renderDontTouch() {
       html += '<div class="text-4xl font-black text-yellow-300 mb-2">15 Minute Break!</div>';
       html += '<div class="text-dark-400 text-sm">You earned it. Step away, grab coffee, touch grass.</div>';
     } else {
+      var acctObj = allAccounts.find(function(a) { return a.name === dtCurrentAccount; });
+      var acctLink = 'account.html?name=' + encodeURIComponent(dtCurrentAccount) + '&adAccountId=' + encodeURIComponent((acctObj && acctObj.adAccountId) || '');
       html += '<div class="text-orange-400 text-xs uppercase tracking-widest font-bold mb-3">YOUR MISSION</div>';
       html += '<div class="text-4xl font-black text-white mb-2">' + dtCurrentAccount + '</div>';
-      html += '<div class="text-dark-400 text-sm">Focus on this account. Click "I\'m Done" when you\'re finished.</div>';
+      html += '<div class="text-dark-400 text-sm mb-5">Focus on this account. Click "I\'m Done" when you\'re finished.</div>';
+      html += '<a href="' + acctLink + '" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand-500/20 border border-brand-500/30 text-brand-400 hover:bg-brand-500/30 transition-all">';
+      html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>';
+      html += 'Go to Account</a>';
     }
     html += '</div>';
     html += '<div class="text-center mb-8">';
@@ -246,10 +251,15 @@ function dtSpin() {
         '<div class="text-4xl font-black text-yellow-300 mb-2">15 Minute Break!</div>' +
         '<div class="text-dark-400 text-sm">You earned it. Step away, grab coffee, touch grass.</div>';
     } else {
+      var acctObj = allAccounts.find(function(a) { return a.name === winnerName; });
+      var acctLink = 'account.html?name=' + encodeURIComponent(winnerName) + '&adAccountId=' + encodeURIComponent((acctObj && acctObj.adAccountId) || '');
       document.getElementById('dt-result-header').innerHTML =
         '<div class="text-orange-400 text-xs uppercase tracking-widest font-bold mb-3">YOUR MISSION</div>' +
         '<div class="text-4xl font-black text-white mb-2">' + winnerName + '</div>' +
-        '<div class="text-dark-400 text-sm">Focus on this account. Click "I\'m Done" when you\'re finished.</div>';
+        '<div class="text-dark-400 text-sm mb-5">Focus on this account. Click "I\'m Done" when you\'re finished.</div>' +
+        '<a href="' + acctLink + '" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand-500/20 border border-brand-500/30 text-brand-400 hover:bg-brand-500/30 transition-all">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>' +
+        'Go to Account</a>';
     }
     document.getElementById('dt-done-area').style.display = 'block';
 
