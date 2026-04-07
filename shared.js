@@ -7452,6 +7452,7 @@ async function loadCreativeForgeContent(clientName) {
             <option value="auto">Auto (from top performers)</option>
             <option value="selfies">Selfies only</option>
             <option value="property">Property only</option>
+            <option value="homes">Homes only (no people/trucks)</option>
             <option value="crew">Crew only</option>
             <option value="mixed">Mixed (all types)</option>
           </select>
