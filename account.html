@@ -141,9 +141,7 @@
 
 <script src="shared.min.js" defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const ok = checkExistingSession();
-  if (!ok) return;
+window._onAuthReady = async function() {
   await loadAllData();
   document.getElementById('loading-state').classList.add('hidden');
   const params = new URLSearchParams(window.location.search);
@@ -154,7 +152,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     window.location = 'dashboard.html';
   }
-});
+};
+document.addEventListener('DOMContentLoaded', () => checkExistingSession());
 </script>
 </body>
 </html>

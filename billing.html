@@ -140,13 +140,12 @@
 
 <script src="shared.min.js" defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const ok = checkExistingSession();
-  if (!ok) return;
+window._onAuthReady = async function() {
   await loadAllData();
   document.getElementById('loading-state').classList.add('hidden');
   renderBilling();
-});
+};
+document.addEventListener('DOMContentLoaded', () => checkExistingSession());
 window.addEventListener('beforeunload', () => {
   if (_billingNotesTimeout) {
     const fn = _billingNotesPendingSave;

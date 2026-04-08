@@ -6947,10 +6947,13 @@ function onAuthSuccess(user, freshLogin) {
     document.getElementById('sidebar-user-name').textContent = user.name;
     document.getElementById('sidebar-user-email').textContent = user.email;
     const pic = document.getElementById('sidebar-user-pic');
-    if (user.picture) { pic.src = user.picture; } else { pic.classList.add('hidden'); }
+    if (user.picture) { pic.src = user.picture; pic.style.display = ''; } else { pic.style.display = 'none'; }
   }
 
-  // v2: Don't auto-call loadAllData — each page init handles it
+  // v2: Each page registers its init function on window._onAuthReady
+  if (typeof window._onAuthReady === 'function') {
+    window._onAuthReady();
+  }
 }
 
 function handleSignOut() {
@@ -8118,12 +8121,7 @@ navigateToAccount = function(val) {
   var parts = val.split('|||');
   window.location = 'account.html?name=' + encodeURIComponent(parts[0]) + '&adAccountId=' + encodeURIComponent(parts[1] || '');
 };
-var _origCheck = typeof checkExistingSession !== 'undefined' ? checkExistingSession : function(){};
-checkExistingSession = function() {
-  var lg = document.getElementById('login-gate'); if(lg) lg.classList.add('hidden');
-  var ap = document.getElementById('app'); if(ap) ap.classList.remove('hidden');
-  return true;
-};
+// Auth override removed — real Google Sign-In gate is active
 
 // Safe render wrappers — only render if the view container exists on the page
 var _origRenderAdmin = renderAdminView;

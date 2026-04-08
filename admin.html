@@ -140,13 +140,12 @@
 
 <script src="shared.min.js" defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const ok = checkExistingSession();
-  if (!ok) return;
+window._onAuthReady = async function() {
   await loadAllData();
   document.getElementById('loading-state').classList.add('hidden');
   renderAdminView();
-});
+};
+document.addEventListener('DOMContentLoaded', () => checkExistingSession());
 </script>
 </body>
 </html>
