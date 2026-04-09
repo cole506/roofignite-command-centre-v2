@@ -7440,7 +7440,7 @@ async function loadCreativeForgeContent(clientName) {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         <div>
           <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Image Count</label>
-          <input type="number" id="cf-gen-count" value="12" min="1" max="30" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500" />
+          <input type="number" id="cf-gen-count" value="12" min="1" max="30" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500" />
         </div>
         <div>
           <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Priority</label>
@@ -7451,13 +7451,14 @@ async function loadCreativeForgeContent(clientName) {
         </div>
         <div>
           <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Scene Type</label>
-          <select id="cf-gen-scene" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500">
+          <select id="cf-gen-scene" onchange="cfToggleCustomSchedule()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-white px-3 py-2 focus:outline-none focus:border-emerald-500">
             <option value="auto">Auto (from top performers)</option>
             <option value="selfies">Selfies only</option>
             <option value="property">Property only</option>
             <option value="homes">Homes only (no people/trucks)</option>
             <option value="crew">Crew only</option>
             <option value="mixed">Mixed (all types)</option>
+            <option value="custom">Custom schedule...</option>
           </select>
         </div>
         <div>
@@ -7471,9 +7472,38 @@ async function loadCreativeForgeContent(clientName) {
           </select>
         </div>
       </div>
+      <div id="cf-custom-schedule" class="mb-3 hidden">
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-2 block">Custom Scene Mix <span id="cf-custom-total" class="text-emerald-400 ml-1">0</span> / <span id="cf-custom-target" class="text-dark-500">12</span></label>
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+          <div class="text-center">
+            <label class="text-[9px] text-dark-400 block mb-0.5">Selfies</label>
+            <input type="number" data-cf-cat="selfie" min="0" max="30" value="0" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white text-center px-1 py-1.5 focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div class="text-center">
+            <label class="text-[9px] text-dark-400 block mb-0.5">Portraits</label>
+            <input type="number" data-cf-cat="portrait" min="0" max="30" value="0" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white text-center px-1 py-1.5 focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div class="text-center">
+            <label class="text-[9px] text-dark-400 block mb-0.5">Property</label>
+            <input type="number" data-cf-cat="property" min="0" max="30" value="0" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white text-center px-1 py-1.5 focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div class="text-center">
+            <label class="text-[9px] text-dark-400 block mb-0.5">Aerial</label>
+            <input type="number" data-cf-cat="aerial" min="0" max="30" value="0" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white text-center px-1 py-1.5 focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div class="text-center">
+            <label class="text-[9px] text-dark-400 block mb-0.5">Crew</label>
+            <input type="number" data-cf-cat="labour" min="0" max="30" value="0" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white text-center px-1 py-1.5 focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div class="text-center">
+            <label class="text-[9px] text-dark-400 block mb-0.5">Customer</label>
+            <input type="number" data-cf-cat="customer" min="0" max="30" value="0" oninput="cfUpdateCustomTotal()" class="w-full bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white text-center px-1 py-1.5 focus:outline-none focus:border-emerald-500" />
+          </div>
+        </div>
+      </div>
       <div class="mb-3">
-        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Notes (optional)</label>
-        <input type="text" id="cf-gen-notes" placeholder="e.g. focus on tile roofs, more drone shots..." class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-3 py-2 focus:outline-none focus:border-emerald-500" />
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Prompt Override (optional)</label>
+        <textarea id="cf-gen-notes" rows="2" placeholder="Overrides all scene rules — e.g. all roofs should be shingle not tile, no trucks, only blonde reps..." class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-3 py-2 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
       </div>
       <button onclick="submitCreativeForgeJob('${esc(clientName)}')" class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/20 transition-all">
         <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -7619,10 +7649,47 @@ async function saveCreativeForgeLocale(clientName) {
 // CREATIVE FORGE QUEUE SUBMIT + STATUS
 // ═══════════════════════════════════════════════
 
+function cfToggleCustomSchedule() {
+  const sel = document.getElementById('cf-gen-scene');
+  const panel = document.getElementById('cf-custom-schedule');
+  if (!sel || !panel) return;
+  if (sel.value === 'custom') {
+    panel.classList.remove('hidden');
+    cfUpdateCustomTotal();
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function cfUpdateCustomTotal() {
+  const inputs = document.querySelectorAll('[data-cf-cat]');
+  let total = 0;
+  inputs.forEach(i => { total += parseInt(i.value) || 0; });
+  const totalEl = document.getElementById('cf-custom-total');
+  const targetEl = document.getElementById('cf-custom-target');
+  const count = parseInt(document.getElementById('cf-gen-count')?.value) || 12;
+  if (totalEl) {
+    totalEl.textContent = total;
+    totalEl.className = total === count ? 'text-emerald-400 ml-1' : (total > count ? 'text-red-400 ml-1' : 'text-yellow-400 ml-1');
+  }
+  if (targetEl) targetEl.textContent = count;
+}
+
+function cfBuildCustomScheduleJSON() {
+  const inputs = document.querySelectorAll('[data-cf-cat]');
+  const schedule = {};
+  inputs.forEach(i => {
+    const val = parseInt(i.value) || 0;
+    if (val > 0) schedule[i.dataset.cfCat] = val;
+  });
+  return Object.keys(schedule).length > 0 ? JSON.stringify(schedule) : 'mixed';
+}
+
 async function submitCreativeForgeJob(clientName) {
   const count = parseInt(document.getElementById('cf-gen-count')?.value) || 12;
   const priority = document.getElementById('cf-gen-priority')?.value || 'normal';
-  const scene = document.getElementById('cf-gen-scene')?.value || 'auto';
+  const sceneRaw = document.getElementById('cf-gen-scene')?.value || 'auto';
+  const scene = sceneRaw === 'custom' ? cfBuildCustomScheduleJSON() : sceneRaw;
   const season = document.getElementById('cf-gen-season')?.value || 'auto';
   const notes = document.getElementById('cf-gen-notes')?.value || '';
 
