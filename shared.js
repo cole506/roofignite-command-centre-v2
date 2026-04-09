@@ -7309,6 +7309,9 @@ function dtFinish() {
 
 let _cfModalClient = null;
 let _cfLocaleCache = {};
+let _cfFolderExists = {};   // clientName → true (skip checkClientFolder after first confirmation)
+let _cfFileListCache = {};  // "clientName|subfolder" → { files: [...], ts: Date.now() }
+const CF_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — file lists stay cached this long
 
 const CF_SECTIONS = [
   { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References/Reps', hint: 'Photos of company representatives' },
@@ -7361,36 +7364,47 @@ async function loadCreativeForgeContent(clientName) {
   const body = document.getElementById('cf-modal-body');
   if (!body) return;
 
-  // Check if folder exists first, only create if needed
-  const checkResult = await writeToSheet('checkClientFolder', { clientName }, { silent: true });
-  if (checkResult.ok && !checkResult.exists) {
-    // Folder doesn't exist - create it
-    const ensureResult = await writeToSheet('createClientFolder', { clientName }, { silent: true });
-    if (!ensureResult.ok) {
-      body.innerHTML = `
-        <div class="text-center py-12">
-          <svg class="w-12 h-12 text-dark-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-          <p class="text-dark-300 text-lg font-semibold mb-2">Could not set up folders for "${clientName}"</p>
-          <p class="text-dark-500 text-sm mb-6">${ensureResult.error || 'Unknown error'}</p>
-          <button onclick="loadCreativeForgeContent('${esc(clientName)}')" class="px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/20 transition-all">
-            Retry
-          </button>
-        </div>
-      `;
-      return;
-    }
-  }
+  // Run folder check + locale fetch in parallel (both are read-only)
+  // Skip folder check entirely if we've already confirmed it exists this session
+  const folderKnown = _cfFolderExists[clientName];
+  const [folderOk, locale] = await Promise.all([
+    // Folder check/create
+    (async () => {
+      if (folderKnown) return true;
+      const checkResult = await writeToSheet('checkClientFolder', { clientName }, { silent: true });
+      if (checkResult.ok && checkResult.exists) { _cfFolderExists[clientName] = true; return true; }
+      if (checkResult.ok && !checkResult.exists) {
+        const ensureResult = await writeToSheet('createClientFolder', { clientName }, { silent: true });
+        if (ensureResult.ok) { _cfFolderExists[clientName] = true; return true; }
+        return ensureResult;
+      }
+      return checkResult;
+    })(),
+    // Locale fetch (cached in memory)
+    (async () => {
+      if (_cfLocaleCache[clientName] !== undefined) return _cfLocaleCache[clientName];
+      try {
+        const localeResult = await writeToSheet('getClientLocale', { clientName }, { silent: true });
+        const loc = (localeResult.ok && localeResult.locale) ? localeResult.locale : '';
+        _cfLocaleCache[clientName] = loc;
+        return loc;
+      } catch(e) { return ''; }
+    })(),
+  ]);
 
-  // Load locale from cache or fetch from sheet
-  let locale = _cfLocaleCache[clientName];
-  if (locale === undefined) {
-    try {
-      const localeResult = await writeToSheet('getClientLocale', { clientName }, { silent: true });
-      locale = (localeResult.ok && localeResult.locale) ? localeResult.locale : '';
-      _cfLocaleCache[clientName] = locale;
-    } catch(e) {
-      locale = '';
-    }
+  if (folderOk !== true) {
+    const err = folderOk?.error || 'Unknown error';
+    body.innerHTML = `
+      <div class="text-center py-12">
+        <svg class="w-12 h-12 text-dark-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        <p class="text-dark-300 text-lg font-semibold mb-2">Could not set up folders for "${clientName}"</p>
+        <p class="text-dark-500 text-sm mb-6">${err}</p>
+        <button onclick="loadCreativeForgeContent('${esc(clientName)}')" class="px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/20 transition-all">
+          Retry
+        </button>
+      </div>
+    `;
+    return;
   }
 
   // Build the sections
@@ -7531,14 +7545,21 @@ async function loadCreativeSection(clientName, subfolder, key) {
   const grid = document.getElementById('cf-grid-' + key);
   if (!grid) return;
 
-  const result = await writeToSheet('listCreativeFiles', { clientName, subfolder }, { silent: true });
-
-  if (!result.ok) {
-    grid.innerHTML = '<div class="col-span-full text-center py-4 text-red-400 text-xs">Error loading files</div>';
-    return;
+  // Check in-memory cache first (avoids Apps Script round-trip)
+  const cacheKey = clientName + '|' + subfolder;
+  const cached = _cfFileListCache[cacheKey];
+  let files;
+  if (cached && (Date.now() - cached.ts) < CF_CACHE_TTL) {
+    files = cached.files;
+  } else {
+    const result = await writeToSheet('listCreativeFiles', { clientName, subfolder }, { silent: true });
+    if (!result.ok) {
+      grid.innerHTML = '<div class="col-span-full text-center py-4 text-red-400 text-xs">Error loading files</div>';
+      return;
+    }
+    files = result.files || [];
+    _cfFileListCache[cacheKey] = { files, ts: Date.now() };
   }
-
-  const files = result.files || [];
   if (files.length === 0) {
     grid.innerHTML = '<div class="col-span-full text-center py-4 text-dark-500 text-xs">No files yet — upload some above</div>';
     return;
@@ -7583,7 +7604,8 @@ async function handleCreativeUpload(event, clientName, subfolder, key) {
     }
   }
 
-  // Refresh the section
+  // Invalidate cache and refresh the section
+  delete _cfFileListCache[clientName + '|' + subfolder];
   await loadCreativeSection(clientName, subfolder, key);
   showToast(files.length + ' file(s) uploaded', 'success');
   event.target.value = ''; // reset input
@@ -7608,6 +7630,7 @@ async function deleteCreativeFile(fileId, clientName, subfolder, key) {
   const result = await writeToSheet('deleteCreativeFile', { fileId });
   if (result.ok) {
     showToast('File deleted', 'success');
+    delete _cfFileListCache[clientName + '|' + subfolder];
     await loadCreativeSection(clientName, subfolder, key);
   } else {
     showToast('Delete failed: ' + (result.error || 'Unknown error'), 'error');
