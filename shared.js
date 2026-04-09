@@ -6614,7 +6614,7 @@ function showToast(message, type = 'info') {
   const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
 
   const toast = document.createElement('div');
-  toast.className = 'fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-xl md:bottom-6 z-[300] flex items-start gap-3 px-5 py-3 rounded-xl shadow-2xl text-white text-sm font-medium bg-gradient-to-r ' + (colors[type] || colors.info);
+  toast.className = 'fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-xl md:bottom-6 z-[100000] flex items-start gap-3 px-5 py-3 rounded-xl shadow-2xl text-white text-sm font-medium bg-gradient-to-r ' + (colors[type] || colors.info);
   toast.style.cssText = 'animation: slideIn 0.3s ease-out; opacity: 0; transform: translateY(20px); word-break: break-word;';
   toast.innerHTML = `<span class="text-lg flex-shrink-0 mt-0.5">${icons[type] || icons.info}</span><span>${message}</span>`;
 
