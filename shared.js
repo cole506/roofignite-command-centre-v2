@@ -7732,32 +7732,34 @@ function cfShowRepWizard(existingReps) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 flex items-center justify-center p-4';
-    overlay.style.cssText = 'z-index:10000;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
-    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(null); } };
+    overlay.style.cssText = 'z-index:10000;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);';
 
-    let btns = existingReps.map(n => `<button onclick="this.closest('.cf-rep-wizard').dataset.result='${esc(n)}';this.closest('.cf-rep-wizard').remove()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all">${n}</button>`).join('');
+    function dismiss() { overlay.remove(); resolve(null); }
+    overlay.onclick = (e) => { if (e.target === overlay) dismiss(); };
 
-    overlay.innerHTML = `<div class="cf-rep-wizard bg-dark-900/95 border border-dark-600/50 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-      <h3 class="text-white font-bold mb-1">Which rep is this photo of?</h3>
+    overlay.innerHTML = `<div class="cf-rep-wizard rounded-2xl p-6 max-w-sm w-full shadow-2xl" style="background:rgba(15,23,42,0.97);border:1px solid rgba(148,163,184,0.15);">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-white font-bold">Which rep is this photo of?</h3>
+        <button class="cf-rep-close text-dark-400 hover:text-white transition-colors p-1" title="Close">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
       <p class="text-dark-400 text-xs mb-4">Select an existing rep or add a new one</p>
-      <div class="flex flex-wrap gap-2 mb-4">${btns}</div>
+      ${existingReps.length > 0 ? `<div class="flex flex-wrap gap-2 mb-4">${existingReps.map(n => `<button class="cf-rep-pick px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all" data-rep="${esc(n)}">${n}</button>`).join('')}</div>` : ''}
       <div class="flex gap-2">
         <input type="text" id="cf-new-rep-name" placeholder="New rep name..." class="flex-1 bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-purple-500" />
         <button id="cf-new-rep-btn" class="px-4 py-2 rounded-lg text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">Add</button>
       </div>
-      <button onclick="this.closest('.cf-rep-wizard').remove()" class="mt-3 w-full text-center text-xs text-dark-500 hover:text-dark-300 transition-colors">Cancel</button>
     </div>`;
 
     document.body.appendChild(overlay);
 
-    // Wire up existing rep buttons
-    overlay.querySelectorAll('.cf-rep-wizard button[onclick]').forEach(btn => {
-      btn.addEventListener('click', () => { const name = btn.textContent.trim(); overlay.remove(); resolve(name); });
+    // Close button (X)
+    overlay.querySelector('.cf-rep-close').addEventListener('click', dismiss);
+    // Existing rep buttons
+    overlay.querySelectorAll('.cf-rep-pick').forEach(btn => {
+      btn.addEventListener('click', () => { overlay.remove(); resolve(btn.dataset.rep); });
     });
-    // Remove the onclick from buttons since we're using addEventListener
-    overlay.querySelectorAll('.cf-rep-wizard button[onclick]').forEach(btn => btn.removeAttribute('onclick'));
-    // Cancel button
-    overlay.querySelector('.cf-rep-wizard > button:last-child').addEventListener('click', () => { overlay.remove(); resolve(null); });
     // New rep button
     document.getElementById('cf-new-rep-btn').addEventListener('click', () => {
       const name = document.getElementById('cf-new-rep-name').value.trim();
