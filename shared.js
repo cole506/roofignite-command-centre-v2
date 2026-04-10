@@ -7731,8 +7731,8 @@ function cfGetExistingRepNames() {
 function cfShowRepWizard(existingReps) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center p-4';
-    overlay.style.cssText = 'background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
+    overlay.className = 'fixed inset-0 flex items-center justify-center p-4';
+    overlay.style.cssText = 'z-index:10000;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
     overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(null); } };
 
     let btns = existingReps.map(n => `<button onclick="this.closest('.cf-rep-wizard').dataset.result='${esc(n)}';this.closest('.cf-rep-wizard').remove()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all">${n}</button>`).join('');
