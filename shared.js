@@ -7440,17 +7440,6 @@ async function loadCreativeForgeContent(clientName) {
         <button onclick="saveCreativeForgeLocale('${esc(clientName)}')" class="px-4 py-2 rounded-xl text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all">Save</button>
       </div>
     </div>
-    <!-- Allowed Roof Types -->
-    <div class="mb-6">
-      <label class="text-xs uppercase tracking-wider text-dark-400 font-semibold mb-2 block">Allowed Roof Types</label>
-      <div class="flex flex-wrap gap-2" id="cf-roof-types">
-        ${CF_ROOF_TYPES.map(rt => `<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${activeRoofTypes.includes(rt.key) ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-dark-800/60 text-dark-400 border border-dark-600/30'}">
-          <input type="checkbox" value="${rt.key}" ${activeRoofTypes.includes(rt.key) ? 'checked' : ''} onchange="cfSaveRoofTypes('${esc(clientName)}')" class="hidden" />
-          <span class="w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${activeRoofTypes.includes(rt.key) ? 'bg-purple-500 border-purple-500 text-white' : 'border-dark-500'}">${activeRoofTypes.includes(rt.key) ? '✓' : ''}</span>
-          ${rt.label}
-        </label>`).join('')}
-      </div>
-    </div>
     <hr class="border-dark-600/30 mb-6">
   `;
 
@@ -7558,6 +7547,16 @@ async function loadCreativeForgeContent(clientName) {
         <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-1 block">Prompt Override (optional)</label>
         <textarea id="cf-gen-notes" rows="2" placeholder="Overrides all scene rules — e.g. all roofs should be shingle not tile, no trucks, only blonde reps..." class="w-full bg-dark-800/80 border border-dark-600/50 rounded-xl text-sm text-dark-200 px-3 py-2 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
       </div>
+      <div class="mb-3">
+        <label class="text-[10px] uppercase tracking-wider text-dark-400 font-semibold mb-2 block">Allowed Roof Types</label>
+        <div class="flex flex-wrap gap-2" id="cf-roof-types">
+          ${CF_ROOF_TYPES.map(rt => `<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${activeRoofTypes.includes(rt.key) ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-dark-800/60 text-dark-400 border border-dark-600/30'}">
+            <input type="checkbox" value="${rt.key}" ${activeRoofTypes.includes(rt.key) ? 'checked' : ''} onchange="cfSaveRoofTypes('${esc(clientName)}')" class="hidden" />
+            <span class="w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${activeRoofTypes.includes(rt.key) ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-dark-500'}">${activeRoofTypes.includes(rt.key) ? '✓' : ''}</span>
+            ${rt.label}
+          </label>`).join('')}
+        </div>
+      </div>
       <button onclick="submitCreativeForgeJob('${esc(clientName)}')" class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/20 transition-all">
         <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
         Add to Queue
@@ -7619,7 +7618,7 @@ async function loadCreativeSection(clientName, subfolder, key) {
     let html = '';
     for (const [repName, repFiles] of Object.entries(groups)) {
       html += `<div class="col-span-full text-xs font-semibold text-purple-300 mt-2 mb-1 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>${repName} (${repFiles.length} photo${repFiles.length > 1 ? 's' : ''})</div>`;
-      html += repFiles.map(f => cfRenderImageTile(f, clientName, subfolder, key)).join('');
+      html += repFiles.map(f => cfRenderRepTile(f, clientName, subfolder, key)).join('');
     }
     grid.innerHTML = html;
     return;
@@ -7637,6 +7636,43 @@ function cfRenderImageTile(f, clientName, subfolder, key) {
       </div>
       <div class="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-dark-200 truncate">${f.name}</div>
     </div>`;
+}
+
+function cfRenderRepTile(f, clientName, subfolder, key) {
+  return `<div class="relative group rounded-xl overflow-hidden border border-dark-600/30 hover:border-purple-500/30 transition-all" style="aspect-ratio:1;">
+      <img src="${f.thumbnailUrl}" alt="${f.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 100\\'><rect fill=\\'%231e293b\\' width=\\'100\\' height=\\'100\\'/><text x=\\'50\\' y=\\'55\\' text-anchor=\\'middle\\' fill=\\'%2364748b\\' font-size=\\'12\\'>No preview</text></svg>'" />
+      <button onclick="event.stopPropagation();deleteCreativeFile('${f.id}', '${esc(clientName)}', '${subfolder}', '${key}')" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;z-index:20;border:none;cursor:pointer;line-height:1;" title="Delete">×</button>
+      <button onclick="event.stopPropagation();cfReassignRep('${f.id}', '${esc(f.name)}', '${esc(clientName)}', '${subfolder}', '${key}')" style="position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#8b5cf6;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;z-index:20;border:none;cursor:pointer;line-height:1;" title="Reassign to different rep">↔</button>
+      <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="event.stopPropagation();showImagePreview('${f.thumbnailUrl.replace('=w200','=w800')}', '${esc(f.name)}')">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-dark-200 truncate">${f.name}</div>
+    </div>`;
+}
+
+async function cfReassignRep(fileId, fileName, clientName, subfolder, key) {
+  const existingReps = cfGetExistingRepNames();
+  const currentRep = fileName.includes('_') ? fileName.split('_')[0] : null;
+  const repName = await cfShowRepWizard(existingReps);
+  if (!repName || repName === currentRep) return;
+
+  // Build new filename: replace old prefix with new rep name
+  const baseName = fileName.includes('_') ? fileName.substring(fileName.indexOf('_') + 1) : fileName;
+  const newName = repName + '_' + baseName;
+
+  showToast('Reassigning to ' + repName + '...', 'info');
+
+  // Rename on Drive = copy with new name + delete old (Drive API doesn't have rename-in-place via Apps Script)
+  // We'll download the file data, re-upload with new name, delete old
+  // Actually simpler: use Drive API PATCH to rename
+  const result = await writeToSheet('renameCreativeFile', { fileId, newName }, { silent: true });
+  if (result.ok) {
+    showToast('Reassigned to ' + repName, 'success');
+    delete _cfFileListCache[clientName + '|' + subfolder];
+    await loadCreativeSection(clientName, subfolder, key);
+  } else {
+    showToast('Reassign failed: ' + (result.error || 'Unknown'), 'error');
+  }
 }
 
 // ═══ File validation helper ═══
@@ -7774,13 +7810,13 @@ async function cfSaveRoofTypes(clientName) {
     const icon = label?.querySelector('span');
     if (c.checked) {
       selected.push(c.value);
-      label?.classList.add('bg-purple-500/20', 'text-purple-300', 'border-purple-500/30');
+      label?.classList.add('bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/30');
       label?.classList.remove('bg-dark-800/60', 'text-dark-400', 'border-dark-600/30');
-      if (icon) { icon.classList.add('bg-purple-500', 'border-purple-500', 'text-white'); icon.classList.remove('border-dark-500'); icon.textContent = '✓'; }
+      if (icon) { icon.classList.add('bg-emerald-500', 'border-emerald-500', 'text-white'); icon.classList.remove('border-dark-500'); icon.textContent = '✓'; }
     } else {
-      label?.classList.remove('bg-purple-500/20', 'text-purple-300', 'border-purple-500/30');
+      label?.classList.remove('bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/30');
       label?.classList.add('bg-dark-800/60', 'text-dark-400', 'border-dark-600/30');
-      if (icon) { icon.classList.remove('bg-purple-500', 'border-purple-500', 'text-white'); icon.classList.add('border-dark-500'); icon.textContent = ''; }
+      if (icon) { icon.classList.remove('bg-emerald-500', 'border-emerald-500', 'text-white'); icon.classList.add('border-dark-500'); icon.textContent = ''; }
     }
   });
   const val = selected.join(',');
