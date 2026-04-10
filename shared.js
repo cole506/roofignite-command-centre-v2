@@ -1264,7 +1264,7 @@ function getDate(row, idx) {
 }
 
 const DATA_CACHE_KEY = 'roofignite_data_cache';
-const DATA_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const DATA_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 function saveDataCache() {
   try {
@@ -1310,8 +1310,8 @@ async function loadAllData(opts) {
         + (inactive.length ? '<optgroup label="── Inactive ──">' + inactive.map(a => `<option value="${a.name}|||${a.adAccountId||''}">${a.name}</option>`).join('') + '</optgroup>' : '');
     }
     if (!silent) document.getElementById('loading-state')?.classList.add('hidden');
-    // Refresh data in background after 5 minutes (not immediately — that defeats caching)
-    setTimeout(() => loadAllData({ silent: true, forceRefresh: true }), 5 * 60 * 1000);
+    // Refresh data in background after cache expires (not immediately — that defeats caching)
+    setTimeout(() => loadAllData({ silent: true, forceRefresh: true }), DATA_CACHE_TTL);
     return;
   }
 
