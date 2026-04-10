@@ -7309,9 +7309,21 @@ function dtFinish() {
 
 let _cfModalClient = null;
 let _cfLocaleCache = {};
+let _cfRoofTypesCache = {};
 let _cfFolderExists = {};   // clientName → true (skip checkClientFolder after first confirmation)
 let _cfFileListCache = {};  // "clientName|subfolder" → { files: [...], ts: Date.now() }
 const CF_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — file lists stay cached this long
+const CF_VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+const CF_SECTION_LIMITS = { reps: 99, logos: 1, vehicles: 3 }; // reps limit = 99 (enforced per unique rep name, max 3 reps)
+const CF_MAX_REPS = 3;
+const CF_ROOF_TYPES = [
+  { key: 'shingle', label: 'Shingle (asphalt)' },
+  { key: 'tile', label: 'Tile (clay/concrete)' },
+  { key: 'metal', label: 'Metal (standing seam)' },
+  { key: 'flat', label: 'Flat (TPO/EPDM)' },
+  { key: 'slate', label: 'Slate' },
+  { key: 'woodshake', label: 'Wood Shake' },
+];
 
 const CF_SECTIONS = [
   { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References/Reps', hint: 'Photos of company representatives' },
@@ -7407,6 +7419,17 @@ async function loadCreativeForgeContent(clientName) {
     return;
   }
 
+  // Load roof types from cache or fetch
+  let roofTypes = _cfRoofTypesCache[clientName];
+  if (roofTypes === undefined) {
+    try {
+      const rtResult = await writeToSheet('getRoofTypes', { clientName }, { silent: true });
+      roofTypes = (rtResult.ok && rtResult.roofTypes) ? rtResult.roofTypes : '';
+      _cfRoofTypesCache[clientName] = roofTypes;
+    } catch(e) { roofTypes = ''; }
+  }
+  const activeRoofTypes = roofTypes ? roofTypes.split(',') : CF_ROOF_TYPES.map(r => r.key); // all checked by default
+
   // Build the sections
   let html = `
     <!-- Locale Setting -->
@@ -7417,25 +7440,41 @@ async function loadCreativeForgeContent(clientName) {
         <button onclick="saveCreativeForgeLocale('${esc(clientName)}')" class="px-4 py-2 rounded-xl text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all">Save</button>
       </div>
     </div>
+    <!-- Allowed Roof Types -->
+    <div class="mb-6">
+      <label class="text-xs uppercase tracking-wider text-dark-400 font-semibold mb-2 block">Allowed Roof Types</label>
+      <div class="flex flex-wrap gap-2" id="cf-roof-types">
+        ${CF_ROOF_TYPES.map(rt => `<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${activeRoofTypes.includes(rt.key) ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-dark-800/60 text-dark-400 border border-dark-600/30'}">
+          <input type="checkbox" value="${rt.key}" ${activeRoofTypes.includes(rt.key) ? 'checked' : ''} onchange="cfSaveRoofTypes('${esc(clientName)}')" class="hidden" />
+          <span class="w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${activeRoofTypes.includes(rt.key) ? 'bg-purple-500 border-purple-500 text-white' : 'border-dark-500'}">${activeRoofTypes.includes(rt.key) ? '✓' : ''}</span>
+          ${rt.label}
+        </label>`).join('')}
+      </div>
+    </div>
     <hr class="border-dark-600/30 mb-6">
   `;
 
   // Add each image section
   for (const section of CF_SECTIONS) {
+    const isReps = section.key === 'reps';
+    const disclaimer = isReps ? `<div class="mb-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90">
+      <strong>Rep Photo Guidelines:</strong> Upload a clear, well-lit headshot of the rep's face (minimum). A full-body shot is recommended for better likeness. Max 3 reps, multiple photos per rep allowed.
+    </div>` : '';
     html += `
     <div class="mb-6">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between mb-2">
         <div>
-          <h3 class="text-sm font-semibold text-white">${section.label}</h3>
+          <h3 class="text-sm font-semibold text-white">${section.label} <span id="cf-count-${section.key}" class="text-dark-500 text-xs font-normal"></span></h3>
           <p class="text-xs text-dark-500">${section.hint}</p>
         </div>
         ${section.noUpload ? '' : `<label class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer">
           <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           Upload
-          <input type="file" accept="image/*" multiple class="hidden" onchange="handleCreativeUpload(event, '${esc(clientName)}', '${section.subfolder}', '${section.key}')" />
+          <input type="file" accept=".jpg,.jpeg,.png" multiple class="hidden" onchange="handleCreativeUpload(event, '${esc(clientName)}', '${section.subfolder}', '${section.key}')" />
         </label>`}
       </div>
-      <div id="cf-grid-${section.key}" class="grid grid-cols-4 md:grid-cols-6 gap-3">
+      ${disclaimer}
+      <div id="cf-grid-${section.key}" class="grid grid-cols-4 md:grid-cols-6 gap-3 rounded-xl border-2 border-dashed border-transparent transition-colors" ondragover="cfDragOver(event, '${section.key}')" ondragleave="cfDragLeave(event, '${section.key}')" ondrop="cfDrop(event, '${esc(clientName)}', '${section.subfolder}', '${section.key}')">
         <div class="col-span-full text-center py-4 text-dark-500 text-xs">Loading...</div>
       </div>
     </div>
@@ -7560,54 +7599,253 @@ async function loadCreativeSection(clientName, subfolder, key) {
     files = result.files || [];
     _cfFileListCache[cacheKey] = { files, ts: Date.now() };
   }
+  // Update count badge
+  const countEl = document.getElementById('cf-count-' + key);
+  if (countEl) countEl.textContent = files.length > 0 ? `(${files.length})` : '';
+
   if (files.length === 0) {
-    grid.innerHTML = '<div class="col-span-full text-center py-4 text-dark-500 text-xs">No files yet — upload some above</div>';
+    grid.innerHTML = '<div class="col-span-full text-center py-4 text-dark-500 text-xs">No files yet — upload or drag images here</div>';
     return;
   }
 
-  grid.innerHTML = files.map(f => `
-    <div class="relative group rounded-xl overflow-hidden border border-dark-600/30 hover:border-purple-500/30 transition-all" style="aspect-ratio:1;">
+  // For reps, group by name prefix (e.g. "Cole_headshot.jpg" → group "Cole")
+  if (key === 'reps') {
+    const groups = {};
+    for (const f of files) {
+      const prefix = f.name.includes('_') ? f.name.split('_')[0] : 'Ungrouped';
+      if (!groups[prefix]) groups[prefix] = [];
+      groups[prefix].push(f);
+    }
+    let html = '';
+    for (const [repName, repFiles] of Object.entries(groups)) {
+      html += `<div class="col-span-full text-xs font-semibold text-purple-300 mt-2 mb-1 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>${repName} (${repFiles.length} photo${repFiles.length > 1 ? 's' : ''})</div>`;
+      html += repFiles.map(f => cfRenderImageTile(f, clientName, subfolder, key)).join('');
+    }
+    grid.innerHTML = html;
+    return;
+  }
+
+  grid.innerHTML = files.map(f => cfRenderImageTile(f, clientName, subfolder, key)).join('');
+}
+
+function cfRenderImageTile(f, clientName, subfolder, key) {
+  return `<div class="relative group rounded-xl overflow-hidden border border-dark-600/30 hover:border-purple-500/30 transition-all" style="aspect-ratio:1;">
       <img src="${f.thumbnailUrl}" alt="${f.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 100\\'><rect fill=\\'%231e293b\\' width=\\'100\\' height=\\'100\\'/><text x=\\'50\\' y=\\'55\\' text-anchor=\\'middle\\' fill=\\'%2364748b\\' font-size=\\'12\\'>No preview</text></svg>'" />
       <button onclick="event.stopPropagation();deleteCreativeFile('${f.id}', '${esc(clientName)}', '${subfolder}', '${key}')" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;z-index:20;border:none;cursor:pointer;line-height:1;" title="Delete">×</button>
       <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="event.stopPropagation();showImagePreview('${f.thumbnailUrl.replace('=w200','=w800')}', '${esc(f.name)}')">
         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
       </div>
       <div class="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-dark-200 truncate">${f.name}</div>
-    </div>
-  `).join('');
+    </div>`;
+}
+
+// ═══ File validation helper ═══
+function cfValidateFile(file) {
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (!CF_VALID_EXTENSIONS.includes(ext)) {
+    showToast(`"${file.name}" rejected — only .jpg, .jpeg, .png files are accepted`, 'error');
+    return false;
+  }
+  return true;
+}
+
+function cfCheckResolution(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      if (img.width < 512 || img.height < 512) {
+        showToast(`"${file.name}" is ${img.width}×${img.height} — low resolution, results may be affected`, 'warning');
+      }
+      URL.revokeObjectURL(img.src);
+      resolve();
+    };
+    img.onerror = () => { URL.revokeObjectURL(img.src); resolve(); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ═══ Section limit check ═══
+function cfCheckSectionLimit(key) {
+  const cacheKey = _cfModalClient + '|' + CF_SECTIONS.find(s => s.key === key)?.subfolder;
+  const cached = _cfFileListCache[cacheKey];
+  const currentCount = cached ? cached.files.length : 0;
+  if (key === 'logos' && currentCount >= CF_SECTION_LIMITS.logos) {
+    showToast('Maximum 1 logo file — delete the existing logo first', 'error');
+    return false;
+  }
+  if (key === 'vehicles' && currentCount >= CF_SECTION_LIMITS.vehicles) {
+    showToast('Maximum 3 vehicle photos', 'error');
+    return false;
+  }
+  return true;
+}
+
+function cfGetExistingRepNames() {
+  const cacheKey = _cfModalClient + '|Approved AI References/Reps';
+  const cached = _cfFileListCache[cacheKey];
+  if (!cached) return [];
+  const names = new Set();
+  for (const f of cached.files) {
+    if (f.name.includes('_')) names.add(f.name.split('_')[0]);
+  }
+  return [...names];
+}
+
+// ═══ Rep wizard — asks which rep the photo belongs to ═══
+function cfShowRepWizard(existingReps) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center p-4';
+    overlay.style.cssText = 'background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(null); } };
+
+    let btns = existingReps.map(n => `<button onclick="this.closest('.cf-rep-wizard').dataset.result='${esc(n)}';this.closest('.cf-rep-wizard').remove()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all">${n}</button>`).join('');
+
+    overlay.innerHTML = `<div class="cf-rep-wizard bg-dark-900/95 border border-dark-600/50 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+      <h3 class="text-white font-bold mb-1">Which rep is this photo of?</h3>
+      <p class="text-dark-400 text-xs mb-4">Select an existing rep or add a new one</p>
+      <div class="flex flex-wrap gap-2 mb-4">${btns}</div>
+      <div class="flex gap-2">
+        <input type="text" id="cf-new-rep-name" placeholder="New rep name..." class="flex-1 bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-purple-500" />
+        <button id="cf-new-rep-btn" class="px-4 py-2 rounded-lg text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">Add</button>
+      </div>
+      <button onclick="this.closest('.cf-rep-wizard').remove()" class="mt-3 w-full text-center text-xs text-dark-500 hover:text-dark-300 transition-colors">Cancel</button>
+    </div>`;
+
+    document.body.appendChild(overlay);
+
+    // Wire up existing rep buttons
+    overlay.querySelectorAll('.cf-rep-wizard button[onclick]').forEach(btn => {
+      btn.addEventListener('click', () => { const name = btn.textContent.trim(); overlay.remove(); resolve(name); });
+    });
+    // Remove the onclick from buttons since we're using addEventListener
+    overlay.querySelectorAll('.cf-rep-wizard button[onclick]').forEach(btn => btn.removeAttribute('onclick'));
+    // Cancel button
+    overlay.querySelector('.cf-rep-wizard > button:last-child').addEventListener('click', () => { overlay.remove(); resolve(null); });
+    // New rep button
+    document.getElementById('cf-new-rep-btn').addEventListener('click', () => {
+      const name = document.getElementById('cf-new-rep-name').value.trim();
+      if (!name) { showToast('Enter a rep name', 'warning'); return; }
+      const existing = cfGetExistingRepNames();
+      if (existing.length >= CF_MAX_REPS && !existing.includes(name)) {
+        showToast(`Maximum ${CF_MAX_REPS} reps — delete an existing rep's photos first`, 'error');
+        return;
+      }
+      overlay.remove();
+      resolve(name);
+    });
+    document.getElementById('cf-new-rep-name').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('cf-new-rep-btn').click();
+    });
+  });
+}
+
+// ═══ Drag-and-drop handlers ═══
+function cfDragOver(e, key) {
+  e.preventDefault();
+  e.stopPropagation();
+  const grid = document.getElementById('cf-grid-' + key);
+  if (grid) grid.style.borderColor = 'rgba(168,85,247,0.5)';
+}
+function cfDragLeave(e, key) {
+  e.preventDefault();
+  e.stopPropagation();
+  const grid = document.getElementById('cf-grid-' + key);
+  if (grid) grid.style.borderColor = 'transparent';
+}
+async function cfDrop(e, clientName, subfolder, key) {
+  e.preventDefault();
+  e.stopPropagation();
+  const grid = document.getElementById('cf-grid-' + key);
+  if (grid) grid.style.borderColor = 'transparent';
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+  // Reuse the same upload flow
+  await cfUploadFiles(Array.from(files), clientName, subfolder, key);
+}
+
+// ═══ Roof type save ═══
+async function cfSaveRoofTypes(clientName) {
+  const checks = document.querySelectorAll('#cf-roof-types input[type=checkbox]');
+  const selected = [];
+  checks.forEach(c => {
+    // Update visual state
+    const label = c.closest('label');
+    const icon = label?.querySelector('span');
+    if (c.checked) {
+      selected.push(c.value);
+      label?.classList.add('bg-purple-500/20', 'text-purple-300', 'border-purple-500/30');
+      label?.classList.remove('bg-dark-800/60', 'text-dark-400', 'border-dark-600/30');
+      if (icon) { icon.classList.add('bg-purple-500', 'border-purple-500', 'text-white'); icon.classList.remove('border-dark-500'); icon.textContent = '✓'; }
+    } else {
+      label?.classList.remove('bg-purple-500/20', 'text-purple-300', 'border-purple-500/30');
+      label?.classList.add('bg-dark-800/60', 'text-dark-400', 'border-dark-600/30');
+      if (icon) { icon.classList.remove('bg-purple-500', 'border-purple-500', 'text-white'); icon.classList.add('border-dark-500'); icon.textContent = ''; }
+    }
+  });
+  const val = selected.join(',');
+  _cfRoofTypesCache[clientName] = val;
+  await writeToSheet('saveRoofTypes', { clientName, roofTypes: val }, { silent: true });
+}
+
+// ═══ Unified upload flow (used by both file input and drag-drop) ═══
+async function cfUploadFiles(fileList, clientName, subfolder, key) {
+  const section = CF_SECTIONS.find(s => s.key === key);
+  if (section?.noUpload) return;
+
+  // Validate all files first
+  const valid = [];
+  for (const file of fileList) {
+    if (!cfValidateFile(file)) continue;
+    await cfCheckResolution(file);
+    valid.push(file);
+  }
+  if (valid.length === 0) return;
+
+  // Check section limits
+  if (!cfCheckSectionLimit(key)) return;
+
+  // For reps, show the wizard for each file
+  if (key === 'reps') {
+    const grid = document.getElementById('cf-grid-' + key);
+    for (const file of valid) {
+      const existingReps = cfGetExistingRepNames();
+      const repName = await cfShowRepWizard(existingReps);
+      if (!repName) { showToast('Upload cancelled', 'info'); continue; }
+      const prefixedName = repName + '_' + file.name;
+      if (grid) grid.innerHTML = '<div class="col-span-full text-center py-2 text-purple-400 text-xs"><div class="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin inline-block mr-2"></div>Uploading ' + file.name + '...</div>' + grid.innerHTML;
+      try {
+        const base64 = await fileToBase64(file);
+        await writeToSheet('uploadCreativeFile', { clientName, subfolder, fileName: prefixedName, base64, mimeType: file.type });
+      } catch (e) { showToast('Upload failed: ' + e.message, 'error'); }
+    }
+  } else {
+    // Standard upload for logos/vehicles/topPerformers
+    const grid = document.getElementById('cf-grid-' + key);
+    if (grid) {
+      const spinner = document.createElement('div');
+      spinner.className = 'col-span-full text-center py-2 text-purple-400 text-xs';
+      spinner.innerHTML = '<div class="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin inline-block mr-2"></div>Uploading...';
+      grid.prepend(spinner);
+    }
+    for (const file of valid) {
+      try {
+        const base64 = await fileToBase64(file);
+        await writeToSheet('uploadCreativeFile', { clientName, subfolder, fileName: file.name, base64, mimeType: file.type });
+      } catch (e) { showToast('Upload failed: ' + e.message, 'error'); }
+    }
+  }
+
+  // Invalidate cache and refresh
+  delete _cfFileListCache[clientName + '|' + subfolder];
+  await loadCreativeSection(clientName, subfolder, key);
+  showToast(valid.length + ' file(s) uploaded', 'success');
 }
 
 async function handleCreativeUpload(event, clientName, subfolder, key) {
   const files = event.target.files;
   if (!files || files.length === 0) return;
-
-  const grid = document.getElementById('cf-grid-' + key);
-  if (grid) {
-    const spinner = document.createElement('div');
-    spinner.className = 'col-span-full text-center py-2 text-purple-400 text-xs';
-    spinner.innerHTML = '<div class="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin inline-block mr-2"></div>Uploading...';
-    grid.prepend(spinner);
-  }
-
-  for (const file of files) {
-    try {
-      const base64 = await fileToBase64(file);
-      await writeToSheet('uploadCreativeFile', {
-        clientName,
-        subfolder,
-        fileName: file.name,
-        base64,
-        mimeType: file.type
-      });
-    } catch (e) {
-      showToast('Upload failed: ' + e.message, 'error');
-    }
-  }
-
-  // Invalidate cache and refresh the section
-  delete _cfFileListCache[clientName + '|' + subfolder];
-  await loadCreativeSection(clientName, subfolder, key);
-  showToast(files.length + ' file(s) uploaded', 'success');
+  await cfUploadFiles(Array.from(files), clientName, subfolder, key);
   event.target.value = ''; // reset input
 }
 
