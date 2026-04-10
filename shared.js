@@ -7326,9 +7326,9 @@ const CF_ROOF_TYPES = [
 ];
 
 const CF_SECTIONS = [
-  { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References/Reps', hint: 'Photos of company representatives' },
-  { key: 'logos', label: 'Approved Logos', subfolder: 'Approved AI References/Logos', hint: 'Company logo files' },
-  { key: 'vehicles', label: 'Approved Vehicles', subfolder: 'Approved AI References/Vehicles', hint: 'Company truck/vehicle photos' },
+  { key: 'reps', label: 'Approved Reps', subfolder: 'Approved AI References/Reps', hint: 'Photos of company representatives', grouped: true },
+  { key: 'logos', label: 'Approved Logo', subfolder: 'Approved AI References/Logos', hint: 'Company logo file' },
+  { key: 'vehicles', label: 'Approved Vehicles', subfolder: 'Approved AI References/Vehicles', hint: 'Company truck/vehicle photos', grouped: true },
   { key: 'topPerformers', label: 'Top Performers', subfolder: 'Top Performers', hint: 'Best-performing ad creatives', noUpload: true },
 ];
 
@@ -7445,10 +7445,13 @@ async function loadCreativeForgeContent(clientName) {
 
   // Add each image section
   for (const section of CF_SECTIONS) {
-    const isReps = section.key === 'reps';
-    const disclaimer = isReps ? `<div class="mb-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90">
+    let disclaimer = '';
+    if (section.key === 'reps') disclaimer = `<div class="mb-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90">
       <strong>Rep Photo Guidelines:</strong> Upload a clear, well-lit headshot of the rep's face (minimum). A full-body shot is recommended for better likeness. Max 3 reps, multiple photos per rep allowed.
-    </div>` : '';
+    </div>`;
+    if (section.key === 'vehicles') disclaimer = `<div class="mb-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90">
+      <strong>Vehicle Photo Guidelines:</strong> Upload clear photos of each vehicle's wrap/livery. Multiple angles per vehicle improve accuracy. Max 3 vehicles.
+    </div>`;
     html += `
     <div class="mb-6">
       <div class="flex items-center justify-between mb-2">
@@ -7607,23 +7610,24 @@ async function loadCreativeSection(clientName, subfolder, key) {
     return;
   }
 
-  // For reps, group by assigned rep name prefix (e.g. "Cole_headshot.jpg" → group "Cole")
-  // Files without a valid rep prefix go into "Unassigned"
-  if (key === 'reps') {
+  // For grouped sections (reps, vehicles), group by assigned name prefix
+  // e.g. "Cole_headshot.jpg" → group "Cole", "Truck1_front.jpg" → group "Truck1"
+  const sectionDef = CF_SECTIONS.find(s => s.key === key);
+  if (sectionDef && sectionDef.grouped) {
     const groups = {};
     for (const f of files) {
-      const rep = cfGetRepName(f.name) || 'Unassigned';
-      if (!groups[rep]) groups[rep] = [];
-      groups[rep].push(f);
+      const name = cfGetRepName(f.name) || 'Unassigned';
+      if (!groups[name]) groups[name] = [];
+      groups[name].push(f);
     }
     let html = '';
-    for (const [repName, repFiles] of Object.entries(groups)) {
-      html += `<div class="col-span-full text-xs font-semibold text-purple-300 mt-2 mb-1 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>${repName} (${repFiles.length} photo${repFiles.length > 1 ? 's' : ''})</div>`;
-      html += repFiles.map(f => cfRenderRepTile(f, clientName, subfolder, key)).join('');
-      // Add a + button tile to upload directly to this rep
-      if (repName !== 'Unassigned') {
-        html += `<label class="rounded-xl border-2 border-dashed border-purple-500/30 hover:border-purple-500/60 flex items-center justify-center cursor-pointer transition-all" style="aspect-ratio:1;" title="Add photo to ${repName}">
-          <input type="file" accept=".jpg,.jpeg,.png" multiple class="hidden" onchange="cfUploadToRep(event, '${esc(clientName)}', '${subfolder}', '${key}', '${esc(repName)}')" />
+    for (const [groupName, groupFiles] of Object.entries(groups)) {
+      html += `<div class="col-span-full text-xs font-semibold text-purple-300 mt-2 mb-1 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>${groupName} (${groupFiles.length} photo${groupFiles.length > 1 ? 's' : ''})</div>`;
+      html += groupFiles.map(f => cfRenderRepTile(f, clientName, subfolder, key)).join('');
+      // Add a + button tile to upload directly to this group
+      if (groupName !== 'Unassigned') {
+        html += `<label class="rounded-xl border-2 border-dashed border-purple-500/30 hover:border-purple-500/60 flex items-center justify-center cursor-pointer transition-all" style="aspect-ratio:1;" title="Add photo to ${groupName}">
+          <input type="file" accept=".jpg,.jpeg,.png" multiple class="hidden" onchange="cfUploadToRep(event, '${esc(clientName)}', '${subfolder}', '${key}', '${esc(groupName)}')" />
           <svg class="w-6 h-6 text-purple-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         </label>`;
       }
@@ -7736,9 +7740,13 @@ function cfCheckSectionLimit(key) {
     showToast('Maximum 1 logo file — delete the existing logo first', 'error');
     return false;
   }
-  if (key === 'vehicles' && currentCount >= CF_SECTION_LIMITS.vehicles) {
-    showToast('Maximum 3 vehicle photos', 'error');
-    return false;
+  if (key === 'vehicles') {
+    // Vehicles limit is per unique vehicle name, not per file
+    const vehicleNames = cfGetGroupNames('vehicles');
+    if (vehicleNames.length >= CF_SECTION_LIMITS.vehicles) {
+      // Still allow uploads to existing vehicles
+      return true;
+    }
   }
   return true;
 }
@@ -7760,20 +7768,28 @@ function cfGetRepName(fileName) {
   return cfIsRepPrefix(fileName) ? fileName.split('_')[0] : null;
 }
 
-function cfGetExistingRepNames() {
-  const cacheKey = _cfModalClient + '|Approved AI References/Reps';
+function cfGetExistingRepNames() { return cfGetGroupNames('reps'); }
+
+function cfGetGroupNames(key) {
+  const section = CF_SECTIONS.find(s => s.key === key);
+  if (!section) return [];
+  const cacheKey = _cfModalClient + '|' + section.subfolder;
   const cached = _cfFileListCache[cacheKey];
   if (!cached) return [];
   const names = new Set();
   for (const f of cached.files) {
-    const rep = cfGetRepName(f.name);
-    if (rep) names.add(rep);
+    const name = cfGetRepName(f.name);
+    if (name) names.add(name);
   }
   return [...names];
 }
 
-// ═══ Rep wizard — asks which rep the photo belongs to ═══
-function cfShowRepWizard(existingReps) {
+// ═══ Group wizard — asks which rep/vehicle the photo belongs to ═══
+function cfShowRepWizard(existingNames) { return cfShowGroupWizard(existingNames, 'rep'); }
+
+function cfShowGroupWizard(existingNames, label) {
+  label = label || 'rep';
+  const maxItems = label === 'rep' ? CF_MAX_REPS : CF_SECTION_LIMITS.vehicles;
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 flex items-center justify-center p-4';
@@ -7784,12 +7800,12 @@ function cfShowRepWizard(existingReps) {
 
     overlay.innerHTML = `<div class="cf-rep-wizard rounded-2xl p-6 max-w-sm w-full shadow-2xl" style="background:rgba(15,23,42,0.97);border:1px solid rgba(148,163,184,0.15);">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-white font-bold">Which rep is this photo of?</h3>
+        <h3 class="text-white font-bold">Which ${label} is this photo of?</h3>
         <button class="cf-rep-close text-dark-400 hover:text-white transition-colors p-1" title="Close">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <p class="text-dark-400 text-xs mb-4">Select an existing rep or add a new one</p>
+      <p class="text-dark-400 text-xs mb-4">Select an existing ${label} or add a new one</p>
       ${existingReps.length > 0 ? `<div class="flex flex-wrap gap-2 mb-4">${existingReps.map(n => `<button class="cf-rep-pick px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all" data-rep="${esc(n)}">${n}</button>`).join('')}</div>` : ''}
       <div class="flex gap-2">
         <input type="text" id="cf-new-rep-name" placeholder="New rep name..." class="flex-1 bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-purple-500" />
@@ -7808,10 +7824,9 @@ function cfShowRepWizard(existingReps) {
     // New rep button
     document.getElementById('cf-new-rep-btn').addEventListener('click', () => {
       const name = document.getElementById('cf-new-rep-name').value.trim();
-      if (!name) { showToast('Enter a rep name', 'warning'); return; }
-      const existing = cfGetExistingRepNames();
-      if (existing.length >= CF_MAX_REPS && !existing.includes(name)) {
-        showToast(`Maximum ${CF_MAX_REPS} reps — delete an existing rep's photos first`, 'error');
+      if (!name) { showToast('Enter a name', 'warning'); return; }
+      if (existingNames.length >= maxItems && !existingNames.includes(name)) {
+        showToast(`Maximum ${maxItems} ${label}s — delete an existing ${label}'s photos first`, 'error');
         return;
       }
       overlay.remove();
@@ -7888,14 +7903,16 @@ async function cfUploadFiles(fileList, clientName, subfolder, key) {
   // Check section limits
   if (!cfCheckSectionLimit(key)) return;
 
-  // For reps, show the wizard for each file
-  if (key === 'reps') {
+  // For grouped sections (reps, vehicles), show the wizard to assign each file
+  const isGrouped = CF_SECTIONS.find(s => s.key === key)?.grouped;
+  if (isGrouped) {
+    const wizardLabel = key === 'reps' ? 'rep' : 'vehicle';
     const grid = document.getElementById('cf-grid-' + key);
     for (const file of valid) {
-      const existingReps = cfGetExistingRepNames();
-      const repName = await cfShowRepWizard(existingReps);
-      if (!repName) { showToast('Upload cancelled', 'info'); continue; }
-      const prefixedName = repName + '_' + file.name;
+      const existingNames = cfGetGroupNames(key);
+      const groupName = await cfShowGroupWizard(existingNames, wizardLabel);
+      if (!groupName) { showToast('Upload cancelled', 'info'); continue; }
+      const prefixedName = groupName + '_' + file.name;
       if (grid) grid.innerHTML = '<div class="col-span-full text-center py-2 text-purple-400 text-xs"><div class="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin inline-block mr-2"></div>Uploading ' + file.name + '...</div>' + grid.innerHTML;
       try {
         const base64 = await fileToBase64(file);
@@ -7903,7 +7920,7 @@ async function cfUploadFiles(fileList, clientName, subfolder, key) {
       } catch (e) { showToast('Upload failed: ' + e.message, 'error'); }
     }
   } else {
-    // Standard upload for logos/vehicles/topPerformers
+    // Standard upload for logos/topPerformers
     const grid = document.getElementById('cf-grid-' + key);
     if (grid) {
       const spinner = document.createElement('div');
