@@ -7607,13 +7607,14 @@ async function loadCreativeSection(clientName, subfolder, key) {
     return;
   }
 
-  // For reps, group by name prefix (e.g. "Cole_headshot.jpg" → group "Cole")
+  // For reps, group by assigned rep name prefix (e.g. "Cole_headshot.jpg" → group "Cole")
+  // Files without a valid rep prefix go into "Unassigned"
   if (key === 'reps') {
     const groups = {};
     for (const f of files) {
-      const prefix = f.name.includes('_') ? f.name.split('_')[0] : 'Ungrouped';
-      if (!groups[prefix]) groups[prefix] = [];
-      groups[prefix].push(f);
+      const rep = cfGetRepName(f.name) || 'Unassigned';
+      if (!groups[rep]) groups[rep] = [];
+      groups[rep].push(f);
     }
     let html = '';
     for (const [repName, repFiles] of Object.entries(groups)) {
@@ -7716,13 +7717,31 @@ function cfCheckSectionLimit(key) {
   return true;
 }
 
+// Common camera/device prefixes that should NOT be treated as rep names
+const CF_IGNORE_PREFIXES = ['img', 'dsc', 'dscn', 'photo', 'pic', 'image', 'screenshot', 'screen', 'file', 'download', 'attachment', 'jpeg', 'png', 'jpg'];
+
+function cfIsRepPrefix(name) {
+  if (!name.includes('_')) return false;
+  const prefix = name.split('_')[0].toLowerCase();
+  // Ignore camera prefixes and very short/numeric prefixes
+  if (CF_IGNORE_PREFIXES.includes(prefix)) return false;
+  if (/^\d+$/.test(prefix)) return false; // pure numbers like "001_"
+  if (prefix.length < 2) return false;
+  return true;
+}
+
+function cfGetRepName(fileName) {
+  return cfIsRepPrefix(fileName) ? fileName.split('_')[0] : null;
+}
+
 function cfGetExistingRepNames() {
   const cacheKey = _cfModalClient + '|Approved AI References/Reps';
   const cached = _cfFileListCache[cacheKey];
   if (!cached) return [];
   const names = new Set();
   for (const f of cached.files) {
-    if (f.name.includes('_')) names.add(f.name.split('_')[0]);
+    const rep = cfGetRepName(f.name);
+    if (rep) names.add(rep);
   }
   return [...names];
 }
