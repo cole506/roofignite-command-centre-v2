@@ -7620,6 +7620,13 @@ async function loadCreativeSection(clientName, subfolder, key) {
     for (const [repName, repFiles] of Object.entries(groups)) {
       html += `<div class="col-span-full text-xs font-semibold text-purple-300 mt-2 mb-1 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>${repName} (${repFiles.length} photo${repFiles.length > 1 ? 's' : ''})</div>`;
       html += repFiles.map(f => cfRenderRepTile(f, clientName, subfolder, key)).join('');
+      // Add a + button tile to upload directly to this rep
+      if (repName !== 'Unassigned') {
+        html += `<label class="rounded-xl border-2 border-dashed border-purple-500/30 hover:border-purple-500/60 flex items-center justify-center cursor-pointer transition-all" style="aspect-ratio:1;" title="Add photo to ${repName}">
+          <input type="file" accept=".jpg,.jpeg,.png" multiple class="hidden" onchange="cfUploadToRep(event, '${esc(clientName)}', '${subfolder}', '${key}', '${esc(repName)}')" />
+          <svg class="w-6 h-6 text-purple-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </label>`;
+      }
     }
     grid.innerHTML = html;
     return;
@@ -7674,6 +7681,25 @@ async function cfReassignRep(fileId, fileName, clientName, subfolder, key) {
   } else {
     showToast('Reassign failed: ' + (result.error || 'Unknown'), 'error');
   }
+}
+
+// ═══ Upload directly to a specific rep (skips wizard) ═══
+async function cfUploadToRep(event, clientName, subfolder, key, repName) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+  for (const file of Array.from(files)) {
+    if (!cfValidateFile(file)) continue;
+    await cfCheckResolution(file);
+    const prefixedName = repName + '_' + file.name;
+    try {
+      const base64 = await fileToBase64(file);
+      await writeToSheet('uploadCreativeFile', { clientName, subfolder, fileName: prefixedName, base64, mimeType: file.type });
+    } catch (e) { showToast('Upload failed: ' + e.message, 'error'); }
+  }
+  delete _cfFileListCache[clientName + '|' + subfolder];
+  await loadCreativeSection(clientName, subfolder, key);
+  showToast(files.length + ' photo(s) added to ' + repName, 'success');
+  event.target.value = '';
 }
 
 // ═══ File validation helper ═══
