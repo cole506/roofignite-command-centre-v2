@@ -8087,6 +8087,8 @@ async function submitCreativeForgeJob(clientName) {
   if (result.ok) {
     showToast(`Queued: ${count} images for ${clientName} (${priority}${season !== 'auto' ? ', ' + season : ''})`, 'success');
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Add to Queue'; }
+    // Kick the queue worker to pick up the job immediately instead of waiting for next poll
+    try { fetch(((typeof CONFIG !== 'undefined' && CONFIG.CREATIVE_FORGE_WORKER_URL) || 'http://localhost:8091') + '/kick', { method: 'POST' }).catch(() => {}); } catch(e) {}
     loadCreativeQueueStatus(clientName);
   } else {
     showToast('Queue failed: ' + (result.error || ''), 'error');

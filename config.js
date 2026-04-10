@@ -41,6 +41,9 @@ const CONFIG = {
   META_ACCESS_TOKEN: 'EAASdzH5TwEUBRPaUn44r7ZAbZBZBZCGYZA73hl7j02dhMr2q5T4gjcJG5rjXCA4Wk8gAaLUJvPXHkFGCnlknBNfCM38dENptvp0LnH3qnhig07ct5YZAEYMi0ZBe95padmQu3hQcGTojP2P64xNPPFxqKmykoZBdfjYaPUZATrpRE8elE7poL6TTd6EaZBBKrA1gZDZD',
   META_API_VERSION: 'v20.0',
 
+  // Creative Forge Queue Worker URL (for instant job kick)
+  CREATIVE_FORGE_WORKER_URL: 'http://localhost:8091',
+
   // Slack Defaults (channels managed via backend Script Properties)
   SLACK: {
     CHANNEL_B2C: 'C0AP0HTB951',  // #b2c-reports
