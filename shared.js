@@ -7663,10 +7663,12 @@ function cfRenderRepTile(f, clientName, subfolder, key) {
 }
 
 async function cfReassignRep(fileId, fileName, clientName, subfolder, key) {
-  const existingReps = cfGetExistingRepNames();
-  const currentRep = fileName.includes('_') ? fileName.split('_')[0] : null;
-  const repName = await cfShowRepWizard(existingReps);
-  if (!repName || repName === currentRep) return;
+  const label = key === 'reps' ? 'rep' : 'vehicle';
+  const existingNames = cfGetGroupNames(key);
+  const currentName = cfGetRepName(fileName);
+  const newGroupName = await cfShowGroupWizard(existingNames, label);
+  if (!newGroupName || newGroupName === currentName) return;
+  const repName = newGroupName;
 
   // Build new filename: replace old prefix with new rep name
   const baseName = fileName.includes('_') ? fileName.substring(fileName.indexOf('_') + 1) : fileName;
@@ -7806,9 +7808,9 @@ function cfShowGroupWizard(existingNames, label) {
         </button>
       </div>
       <p class="text-dark-400 text-xs mb-4">Select an existing ${label} or add a new one</p>
-      ${existingReps.length > 0 ? `<div class="flex flex-wrap gap-2 mb-4">${existingReps.map(n => `<button class="cf-rep-pick px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all" data-rep="${esc(n)}">${n}</button>`).join('')}</div>` : ''}
+      ${existingNames.length > 0 ? `<div class="flex flex-wrap gap-2 mb-4">${existingNames.map(n => `<button class="cf-rep-pick px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple-500/30 border border-purple-500/40 hover:bg-purple-500/50 transition-all" data-rep="${esc(n)}">${n}</button>`).join('')}</div>` : ''}
       <div class="flex gap-2">
-        <input type="text" id="cf-new-rep-name" placeholder="New rep name..." class="flex-1 bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-purple-500" />
+        <input type="text" id="cf-new-rep-name" placeholder="New ${label} name..." class="flex-1 bg-dark-800/80 border border-dark-600/50 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-purple-500" />
         <button id="cf-new-rep-btn" class="px-4 py-2 rounded-lg text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">Add</button>
       </div>
     </div>`;
